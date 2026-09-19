@@ -1,0 +1,25 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1037.001
+
+Technique Name: Logon Script (Windows)
+
+Description:
+Adversaries may use Windows logon scripts automatically executed at logon initialization to establish persistence. Windows allows logon scripts to be run whenever a specific user or group of users log into a system.(Citation: TechNet Logon Scripts) This is done via adding a path to a script to the HKCU\Environment\UserInitMprLogonScript Registry key.(Citation: Hexacorn Logon Scripts)
+
+Adversaries may use these scripts to maintain persistence on a single system. Depending on the access configuration of the logon scripts, either local credentials or an administrator account may be necessary.
+
+Tactics:
+persistence, privilege-escalation
+
+Platforms:
+Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

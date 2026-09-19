@@ -1,0 +1,25 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1059.011
+
+Technique Name: Lua
+
+Description:
+Adversaries may abuse Lua commands and scripts for execution. Lua is a cross-platform scripting and programming language primarily designed for embedded use in applications. Lua can be executed on the command-line (through the stand-alone lua interpreter), via scripts (.lua), or from Lua-embedded programs (through the struct lua_State).(Citation: Lua main page)(Citation: Lua state)
+
+Lua scripts may be executed by adversaries for malicious purposes. Adversaries may incorporate, abuse, or replace existing Lua interpreters to allow for malicious Lua command execution at runtime.(Citation: PoetRat Lua)(Citation: Lua Proofpoint Sunseed)(Citation: Cyphort EvilBunny)(Citation: Kaspersky Lua)
+
+Tactics:
+execution
+
+Platforms:
+Linux, Network Devices, Windows, macOS
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

@@ -1,0 +1,25 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1036.005
+
+Technique Name: Match Legitimate Resource Name or Location
+
+Description:
+Adversaries may match or approximate the name or location of legitimate files, Registry keys, or other resources when naming/placing them. This is done for the sake of evading defenses and observation. 
+
+This may be done by placing an executable in a commonly trusted directory (ex: under System32) or giving it the name of a legitimate, trusted program (ex: `svchost.exe`). Alternatively, a Windows Registry key may be given a close approximation to a key used by a legitimate program. In containerized environments, a threat actor may create a resource in a trusted namespace or one that matches the naming convention of a container pod or cluster.(Citation: Aquasec Kubernetes Backdoor 2023)
+
+Tactics:
+stealth
+
+Platforms:
+Containers, ESXi, Linux, macOS, Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

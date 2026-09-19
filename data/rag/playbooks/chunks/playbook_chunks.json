@@ -1,0 +1,407 @@
+[
+  {
+    "text": "# Playbook: Brute Force Attack\n\n## Incident Type\nAuthentication Anomaly / Credential Access / Brute Force & Password Spraying\n\n## Purpose\nProvide security operations center (SOC) analysts with a standardized workflow to detect, investigate, contain, eradicate, and recover from automated or manual brute force authentication attempts against corporate accounts, endpoints, VPNs, and cloud services.\n\n## Trigger Conditions\n- High volume of failed authentication attempts within a short time window originating from single or distributed IP addresses.\n- Account lockout alerts triggered across multiple user accounts simultaneously or sequentially.\n- Sudden spike in failed logins followed by a successful authentication on an external service (SSH, RDP, VPN, Web Portal).\n- SIEM, EDR, or Identity Provider (IdP) rule detections for Password Guessing, Password Spraying, or Dictionary Attacks.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 0
+    }
+  },
+  {
+    "text": "## Initial Triage\n1. Review the alert metadata to identify targeted usernames, source IP address(es), geographic origin, targeted protocols/applications, and timestamp interval.\n2. Determine whether the attack is targeted at a single account (traditional brute force) or spread across many accounts using common passwords (password spraying).\n3. Check authentication status: confirm if all attempts were failed or if any attempt succeeded during or immediately following the surge.\n4. Verify if the targeted account is an active employee, service account, privileged administrator, or deactivated user.\n5. Check if the source IP is known internal infrastructure, vulnerability scanner, or external public IP.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 1
+    }
+  },
+  {
+    "text": "## Investigation Steps\n1. Correlate authentication logs across Active Directory/IdP, VPN gateways, firewall logs, and single sign-on (SSO) systems for the same time frame.\n2. Query threat intelligence sources (such as ThreatFox, AbuseIPDB, or internal blocklists) to check the reputation of the external source IP addresses.\n3. If an authentication attempt succeeded:\n   - Identify the specific account compromised.\n   - Inspect post-authentication session telemetry: IP address, user-agent, MFA prompt response time, and MFA method used.\n   - Check if the login occurred from an anomalous location or impossible travel scenario.\n   - Examine subsequent endpoint and cloud activity for privilege escalation, reconnaissance, or data access within the authenticated session.\n4. If password spraying is suspected, identify the full list of accounts targeted in the spray pattern.\n5. Check for signs of MFA fatigue/push spamming where repeated prompts were pushed to force user approval.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 2
+    }
+  },
+  {
+    "text": "## Containment Steps\n1. If an account had a successful login during the attack:\n   - Immediately disable or lock the compromised user account in the directory service.\n   - Terminate all active sessions and revoke existing authentication tokens/refresh tokens.\n   - Reset the account password and revoke/re-enroll MFA devices.\n2. If the attack originates from discrete external IP addresses:\n   - Temporarily block the offending source IP address(es) at the perimeter firewall or web application firewall (WAF).\n3. If targeted against an exposed administrative port (such as external RDP/SSH):\n   - Restrict access to authorized management networks or require VPN access.\n4. If account lockout thresholds are not enforced, coordinate temporary lockout policy enforcement to prevent continuous password guessing.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 3
+    }
+  },
+  {
+    "text": "## Eradication Steps\n1. Remove any persistence mechanisms created during an authenticated session (e.g., newly registered MFA factors, OAuth app grants, inbox forwarding rules).\n2. Scan endpoints accessed by the compromised user for dropped tools, webshells, or unauthorized software.\n3. Validate that no secondary backdoor accounts were created during the compromise window.\n4. Ensure all affected accounts have completed a verified out-of-band password change.\n\n## Recovery Steps\n1. Re-enable the user account following out-of-band identity verification with the account owner.\n2. Confirm successful re-enrollment of Multi-Factor Authentication with phishing-resistant or authenticator app methods.\n3. Restore any altered configurations or access controls to a verified baseline state.\n4. Place enhanced monitoring and alerting on the affected user account for 7 to 14 days.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 4
+    }
+  },
+  {
+    "text": "## Evidence to Collect\n- Authentication log excerpts showing timestamp, username, source IP, user-agent, result code, and failure reason.\n- Firewall and proxy session records associated with the attacker IP addresses.\n- Threat intelligence reputation reports for offending IP addresses.\n- MFA server logs showing push notifications, approvals, or denials.\n- Post-compromise process execution logs and security event logs if access succeeded.\n\n## Escalation Criteria\n- An authentication attempt succeeded on an account with domain administrator or privileged access.\n- Widespread password spraying succeeded across multiple enterprise accounts simultaneously.\n- Host telemetry indicates successful lateral movement, credential dumping, or data exfiltration following authentication.\n- Source IP infrastructure is attributed to a known Advanced Persistent Threat (APT) group or active ransomware campaign.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 5
+    }
+  },
+  {
+    "text": "## Closure Criteria\n- All authentication attempts from the attacker source have ceased or are effectively blocked.\n- Confirmed that no unauthorized logins succeeded, or all compromised accounts were isolated, remediated, and verified.\n- Persistence mechanisms and post-exploitation artifacts have been thoroughly identified and eliminated.\n- Post-incident monitoring shows normal baseline authentication patterns for affected identities.",
+    "metadata": {
+      "playbook_name": "Brute Force Attack",
+      "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+      "source": "brute_force.md",
+      "chunk_id": 6
+    }
+  },
+  {
+    "text": "# Playbook: Credential Compromise\n\n## Incident Type\nIdentity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access\n\n## Purpose\nProvide a standardized procedure for SOC analysts to investigate, contain, remediate, and recover from confirmed or suspected user and service account compromises, unauthorized access sessions, and credential dumping events.\n\n## Trigger Conditions\n- Identity Provider (IdP) risk detection (e.g., Leaked Credentials, Atypical Travel, Impossible Travel, Anomalous Token, Suspicious Browser Session).\n- EDR alert for credential dumping tools or memory access against `lsass.exe`, SAM registry hives, or browser credential databases.\n- External threat intelligence or dark web breach intelligence reporting active enterprise credentials in credential leak dumps.\n- Multiple successful logins from unfamiliar international geographic locations without registered business travel.\n- Multiple failed MFA attempts followed by an unexpected MFA registration or successful login.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 0
+    }
+  },
+  {
+    "text": "## Initial Triage\n1. Identify the compromised account: username, user role, department, privilege level (standard user vs. local admin vs. domain admin vs. cloud global admin).\n2. Gather initial authentication indicators: source IP, country, device ID, user-agent, authentication protocol, and timestamp of the alert.\n3. Determine if the detection is based on:\n   - External remote login (e.g., VPN, Microsoft 365, AWS Console, Okta).\n   - Local endpoint credential harvesting (e.g., Mimikatz, ProcDump, secretsdump).\n   - Third-party public breach notification.\n4. Check if the user is actively working, traveling, or using an authorized enterprise VPN/proxy.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 1
+    }
+  },
+  {
+    "text": "## Investigation Steps\n1. Review Identity and Access Management (IAM) audit logs for the preceding 14 days:\n   - Analyze logon history: list all source IP addresses, client applications, and operating systems used.\n   - Look for changes to user account settings: secondary email additions, mobile number changes, or newly enrolled MFA devices / FIDO keys.\n2. Check email activity (if email/cloud mailbox access occurred):\n   - Review inbox rules for forwarding, redirection, or deletion rules (e.g., rules hiding emails containing words like \"phish\", \"invoice\", \"payment\", \"alert\").\n   - Inspect sent items for outgoing phishing or fraudulent payment redirection messages sent from the compromised account.\n3. Review cloud resource / application access:\n   - Check file access logs (SharePoint, OneDrive, Google Drive, AWS S3) for bulk file downloads, permission modifications, or sensitive data exports.\n   - Review administrative actions: role assignments, new user creations, or OAuth application consents.\n4. Correlate with endpoint telemetry:",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 2
+    }
+  },
+  {
+    "text": "- Review administrative actions: role assignments, new user creations, or OAuth application consents.\n4. Correlate with endpoint telemetry:\n   - If internal host access occurred, examine process execution, network connections, and remote desktop (RDP) sessions initiated by the compromised identity.\n   - Check if the account was used to execute commands on other endpoints (lateral movement).\n5. Cross-reference source IP addresses against threat intelligence feeds (ThreatFox, AbuseIPDB) to identify proxies, VPN exit nodes, or known botnet infrastructure.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 3
+    }
+  },
+  {
+    "text": "## Containment Steps\n1. Account Disablement / Lockout:\n   - Immediately disable or lock the compromised user account in Active Directory and cloud identity provider.\n2. Session Invalidation:\n   - Revoke all active user sessions, refresh tokens, browser cookies, and OAuth authorizations across all integrated services.\n3. Password & Secret Reset:\n   - Force an immediate password reset via administrative override.\n4. MFA Quarantine:\n   - Remove any newly added or unrecognized MFA authentication devices or phone numbers from the user profile.\n5. IP Blocking:\n   - Block malicious source IP addresses at perimeter firewalls and identity conditional access policies.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 4
+    }
+  },
+  {
+    "text": "## Eradication Steps\n1. Remove all persistence mechanisms added by the attacker:\n   - Delete unauthorized inbox forwarding or redirection rules.\n   - Remove newly created administrator roles, user accounts, or service principals.\n   - Revoke any unauthorized enterprise applications or third-party OAuth app consents granted during the breach.\n2. If credentials were dumped from an endpoint:\n   - Re-image or completely clean the host where the dumping tool was executed.\n   - Reset credentials for ALL accounts that had logged into that compromised host within the past 30 days.\n3. Verify that no secondary backdoors or scheduled tasks were established under the user's context.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 5
+    }
+  },
+  {
+    "text": "## Recovery Steps\n1. Re-enable the account following direct out-of-band identity verification with the employee (via verified phone call or manager confirmation).\n2. Assist user with re-enrolling a fresh MFA factor using an approved, phishing-resistant method.\n3. Confirm that account privileges and group memberships accurately reflect the user's legitimate role.\n4. Notify affected business units if sensitive documents or internal communications were accessed or altered.\n5. Place the account under enhanced logging and monitoring for 30 days.\n\n## Evidence to Collect\n- IAM / IdP authentication and audit logs covering 14 days prior to the alert through containment.\n- List of IP addresses, geolocation data, and user-agents utilized by the unauthorized actor.\n- Export of mailbox rules, forwarded message logs, and modified cloud configurations.\n- Audit trail of any files downloaded, accessed, or modified during the unauthorized session.\n- EDR process and connection logs from endpoints accessed by the compromised account.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 6
+    }
+  },
+  {
+    "text": "## Escalation Criteria\n- Compromised account holds domain administrative, cloud global administrative, or root privileges.\n- Attacker accessed confidential intellectual property, financial systems, or sensitive customer data (PII/PHI).\n- Evidence of active lateral movement to high-value servers or domain controllers using the compromised credentials.\n- Discovery of enterprise-wide credential exposure (e.g., NTDS.dit exfiltration, Kerberoasting on privileged service accounts).\n\n## Closure Criteria\n- Compromised credentials have been reset and all active sessions revoked.\n- All attacker-added persistence factors (MFA devices, inbox rules, app grants) have been removed and verified.\n- Confirmed that no ongoing unauthorized authentication attempts are succeeding.\n- Blast radius has been fully scoped, documented, and remediated across on-premises and cloud environments.",
+    "metadata": {
+      "playbook_name": "Credential Compromise",
+      "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+      "source": "credential_compromise.md",
+      "chunk_id": 7
+    }
+  },
+  {
+    "text": "# Playbook: Malware Infection\n\n## Incident Type\nEndpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)\n\n## Purpose\nGuide SOC analysts through the identification, triage, scoping, containment, eradication, and post-incident recovery of an endpoint or server exhibiting signs of malware execution or infection.\n\n## Trigger Conditions\n- Antivirus, EDR, or host intrusion detection alert indicating blocked or executed malicious binary or script.\n- Threat intelligence match on file hash (MD5, SHA1, SHA256) matching known malware families in MalwareBazaar or VirusTotal.\n- Identification of anomalous process execution patterns, unauthorized service installation, or unexpected binary execution from temporary directories (`%TEMP%`, `C:\\ProgramData\\`, `/tmp`).\n- Ransom note detection, mass file modification, or unauthorized shadow copy deletion.",
+    "metadata": {
+      "playbook_name": "Malware Infection",
+      "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+      "source": "malware_infection.md",
+      "chunk_id": 0
+    }
+  },
+  {
+    "text": "## Initial Triage\n1. Review the alerting detection details: host name, logged-in user, file path, process name, parent process name, process command line, and file hashes.\n2. Determine execution state: was the malicious file successfully executed, blocked prior to execution, or quarantined by security software?\n3. Retrieve file hashes and query threat intelligence platforms (MalwareBazaar, ThreatFox, VirusTotal) to identify known malware signatures, malware family, and potential capabilities.\n4. Assess host criticality (e.g., domain controller, database server, executive workstation).\n5. Determine if active Command and Control (C2) network connections or lateral movement attempts are ongoing.",
+    "metadata": {
+      "playbook_name": "Malware Infection",
+      "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+      "source": "malware_infection.md",
+      "chunk_id": 1
+    }
+  },
+  {
+    "text": "## Investigation Steps\n1. Inspect endpoint process tree:\n   - Identify parent process (e.g., macro-enabled office document, browser download, archive extractor, scheduled task).\n   - Trace spawned child processes (e.g., `cmd.exe`, `powershell.exe`, `certutil.exe`, `wscript.exe`).\n2. Analyze network telemetry:\n   - Search firewall, proxy, and DNS query logs for outbound connections initiated by the suspicious process.\n   - Correlate contacted external IP addresses and domain names with threat intelligence.\n3. Check for persistence mechanisms established by the malware:\n   - Registry Run/RunOnce keys (`HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run`, `HKLM\\...`).\n   - Scheduled tasks or cron jobs created around the time of execution.\n   - Newly created or modified system services or daemons.\n   - Startup folder additions or WMI event subscriptions.\n4. Check for defense evasion:\n   - Modifications to security software, deletion of event logs (`wevtutil`), or termination of endpoint protection agents.\n5. Scope the enterprise:\n   - Sweep EDR and SIEM logs across all enterprise endpoints for occurrences of the same file hash, file name, C2 IP, or domain.",
+    "metadata": {
+      "playbook_name": "Malware Infection",
+      "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+      "source": "malware_infection.md",
+      "chunk_id": 2
+    }
+  },
+  {
+    "text": "## Containment Steps\n1. Host Isolation:\n   - Perform network isolation of the infected endpoint via EDR containment capability while maintaining management/forensic access.\n2. Network Containment:\n   - Add confirmed malicious C2 IP addresses and domains to boundary firewalls, DNS sinkholes, and web proxy blocklists.\n3. Hash Blacklisting:\n   - Add malicious file hashes (MD5, SHA256) to enterprise endpoint protection and application control blocklists.\n4. Account Isolation:\n   - If privileged credentials were present in memory or used by the infected host, force a password reset and revoke active sessions.\n\n## Eradication Steps\n1. Kill any active malicious processes and parent trees.\n2. Delete malicious files, dropped payloads, and temporary artifacts across all identified file system locations.\n3. Remove all established persistence items (scheduled tasks, registry entries, unauthorized services).\n4. If ransomware or widespread system modification occurred, re-imaging or rebuilding the endpoint from a known good gold image is recommended over manual cleaning.\n5. Verify remediation by executing a full-disk EDR scan.",
+    "metadata": {
+      "playbook_name": "Malware Infection",
+      "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+      "source": "malware_infection.md",
+      "chunk_id": 3
+    }
+  },
+  {
+    "text": "## Recovery Steps\n1. Re-image the system if rootkit, kernel modification, or severe compromise occurred.\n2. Reconnect the cleaned or re-imaged system to the production network after confirming all security agents are functional and signatures updated.\n3. Restore user data only from clean, verified pre-infection backups.\n4. Monitor the affected endpoint closely for 7 to 14 days for re-infection attempts or beaconing.\n\n## Evidence to Collect\n- Malicious binary samples captured in a password-protected encrypted archive (e.g., zip with password `infected`).\n- Complete EDR process tree timeline and event logs.\n- Memory capture (RAM dump) for offline analysis if sophisticated rootkit or infostealer is suspected.\n- Network connection records, DNS queries, and proxy logs associated with the compromised host.\n- File system metadata: creation timestamps, file attributes, and execution paths.",
+    "metadata": {
+      "playbook_name": "Malware Infection",
+      "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+      "source": "malware_infection.md",
+      "chunk_id": 4
+    }
+  },
+  {
+    "text": "## Escalation Criteria\n- Malware is identified as ransomware or actively destroying/encrypting data.\n- The infection is spreading laterally across internal network segments or utilizing worm-like capabilities.\n- Domain Controller or core infrastructure server is infected.\n- Credential harvesting or memory extraction from `lsass.exe` was executed.\n- High-profile malware family associated with a targeted cyber espionage or organized crime group.\n\n## Closure Criteria\n- All malicious binaries, dropped files, and persistence entries have been completely eradicated.\n- Enterprise-wide scoping confirms no other endpoints host the malicious file hash or communicate with identified C2 infrastructure.\n- Network telemetry confirms no remaining beaconing from the isolated or recovered host.\n- Root cause (e.g., phishing attachment, drive-by download, unpatched vulnerability) is documented and addressed.",
+    "metadata": {
+      "playbook_name": "Malware Infection",
+      "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+      "source": "malware_infection.md",
+      "chunk_id": 5
+    }
+  },
+  {
+    "text": "# Playbook: Phishing Attack\n\n## Incident Type\nSocial Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment\n\n## Purpose\nProvide guidance for SOC analysts to evaluate, investigate, contain, and remediate reported phishing emails, credential harvesting landing pages, weaponized attachments, and downstream compromise resulting from social engineering.\n\n## Trigger Conditions\n- User-reported suspicious email submitted via phishing reporting plugin or dedicated mailbox.\n- Email gateway (SEG) alert detecting spoofed domain, suspicious attachment, known phishing URL, or DKIM/SPF/DMARC failure.\n- Web proxy alert indicating an internal employee visited a newly registered domain (NRD) or known phishing site from an email link.\n- Threat intelligence feed matching malicious domains or URLs delivered via email (such as URLhaus).",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 0
+    }
+  },
+  {
+    "text": "## Initial Triage\n1. Review email message headers:\n   - Sender address (`From:`, `Return-Path:`).\n   - Sending server IP address and reverse DNS lookup.\n   - SPF, DKIM, and DMARC authentication verification results.\n   - Recipient list (`To:`, `Cc:`, `Bcc:`).\n2. Examine the email body and lures:\n   - Urgency indicators (e.g., password expiration, overdue invoice, urgent wire transfer, HR notification).\n   - Display name spoofing (e.g., executive or trusted vendor impersonation).\n3. Identify embedded artifacts:\n   - Hyperlinks/URLs (including URL redirection or obfuscation services).\n   - Attachments (e.g., ISO, ZIP, HTML, EXE, macro-enabled DOCM/XLSM, PDF with links).\n4. Determine interaction scope:\n   - Did any recipient open the attachment, click the link, or submit credentials?",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 1
+    }
+  },
+  {
+    "text": "## Investigation Steps\n1. Query Secure Email Gateway (SEG) logs to determine the blast radius:\n   - Identify how many mailboxes received the identical or related phishing message across the organization.\n2. Analyze links:\n   - Check destination URLs using safe reputation sandboxes and URL analysis services (URLhaus, VirusTotal).\n   - Check if the page is a credential harvesting portal (e.g., fake Microsoft 365, Okta, or Google login).\n3. Analyze attachments:\n   - Compute MD5/SHA256 hashes of attachments and check against MalwareBazaar / VirusTotal.\n   - Run attachments in an isolated dynamic analysis sandbox to observe process execution and network callback behavior.\n4. Check web proxy and DNS telemetry:\n   - Search for internal proxy requests to the identified phishing URL.\n   - Identify specific users who navigated to the page and inspect HTTP POST request body sizes (indicating potential credential submission).\n5. Check identity provider logs:\n   - Inspect authentication attempts from the clicking user within 0-4 hours of email receipt.\n   - Look for successful logins from anomalous geolocations, unfamiliar user-agents, or session hijacking indicators.",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 2
+    }
+  },
+  {
+    "text": "## Containment Steps\n1. Email Purge:\n   - Search and delete (soft or hard purge) the phishing email across all recipient mailboxes via email gateway or Microsoft Graph/PowerShell cmdlets.\n2. Network and URL Blocking:\n   - Add malicious URLs and domains to boundary web proxies, secure DNS resolvers, and endpoint protection web filtering blocklists.\n3. Sender Domain/IP Blacklist:\n   - Block offending sender IP addresses and malicious domains at the email security gateway.\n4. Account Remediation (if credentials entered or suspected):\n   - Immediately force password reset for the compromised account.\n   - Invalidate all active browser sessions, OAuth tokens, and refresh tokens.\n   - Revoke and re-verify registered MFA devices.",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 3
+    }
+  },
+  {
+    "text": "## Eradication Steps\n1. If malicious attachment executed:\n   - Isolate affected endpoint from network immediately.\n   - Follow the Malware Infection Playbook for complete process termination and file eradication.\n2. Review mailbox configuration of compromised user:\n   - Inspect and delete unauthorized mailbox forwarding rules, inbox sweep rules, or delegate permissions created by the attacker.\n3. Check for unauthorized OAuth application consent grants in the cloud directory and revoke non-approved applications.\n\n## Recovery Steps\n1. Restore sanitized email communication channel for any business operations impacted by email blocking.\n2. Re-establish user account access following confirmed identity verification.\n3. Conduct direct outreach or security awareness briefing with users who engaged with the phishing lure.\n4. Monitor targeted accounts and outbound email traffic for suspicious outbound spam or anomalous activity for 14 days.",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 4
+    }
+  },
+  {
+    "text": "## Evidence to Collect\n- Original raw email message exported in `.eml` or `.msg` format with full diagnostic headers.\n- Screenshots of the phishing landing page captured in a safe sandbox.\n- File hashes and sandbox execution reports of any weaponized attachments.\n- Proxy logs showing outbound connections, timestamps, IP addresses, and user-agents of visiting clients.\n- Authentication logs and session identifiers for any affected user accounts.\n\n## Escalation Criteria\n- An executive (C-level), finance administrator, or high-privilege IT administrator entered credentials into a phishing portal.\n- An attacker successfully authenticated using harvested credentials and accessed internal resources or email contents.\n- Malware attachment executed with active C2 communication or ransomware deployment.\n- High-volume targeted business email compromise (BEC) involving fraudulent invoice modification or wire transfer redirection.",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 5
+    }
+  },
+  {
+    "text": "## Closure Criteria\n- All instances of the phishing email have been completely purged from all enterprise mailboxes.\n- Malicious domains, URLs, and sender addresses are blocked across perimeter defenses.\n- All users who clicked links or submitted data have been identified, remediated, and secured.\n- Any secondary attacker actions (malware execution, forwarding rules, OAuth grants) have been eliminated.",
+    "metadata": {
+      "playbook_name": "Phishing Attack",
+      "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+      "source": "phishing_attack.md",
+      "chunk_id": 6
+    }
+  },
+  {
+    "text": "# Playbook: Suspicious IP and Network Activity\n\n## Incident Type\nNetwork Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning\n\n## Purpose\nProvide standardized response workflows for SOC analysts to investigate, triage, contain, and remediate alerts involving communications with suspicious, blacklisted, or anomalous external IP addresses, port scanning, data exfiltration, or external intrusion attempts.\n\n## Trigger Conditions\n- Network Intrusion Detection/Prevention System (NIDS/NIPS) alert indicating outbound connection to known Command and Control (C2) IP or botnet node.\n- Firewall or NetFlow alert indicating abnormal outbound data volume transfer (potential data exfiltration) to an external IP.\n- Threat intelligence match on external IP address against active threat feeds (e.g., ThreatFox, AbuseIPDB, internal threat intel).\n- Internal or external port scanning, brute force sweeps, or vulnerability probing detected across network segments.\n- Detection of beaconing behavior (periodic, regular interval communication) to an uncategorized external IP.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 0
+    }
+  },
+  {
+    "text": "## Initial Triage\n1. Identify communication endpoints: internal source IP/hostname, source port, external destination IP, destination port, transport protocol (TCP/UDP/ICMP), and total bytes transferred.\n2. Determine directionality: inbound attack attempt vs. outbound connection from internal host.\n3. Query threat intelligence platforms (ThreatFox, AbuseIPDB, VirusTotal, Shodan, WHOIS) to analyze destination IP:\n   - Reputation score, known threat actor associations, malware family attribution, hosting provider (bulletproof host, cloud provider, Tor exit node, residential proxy).\n4. Identify internal asset context: workstation, server, network appliance, or guest Wi-Fi device.\n5. Identify the initiating internal process name and PID via EDR or network socket telemetry.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 1
+    }
+  },
+  {
+    "text": "## Investigation Steps\n1. Analyze network flow and firewall logs:\n   - Determine connection history: first seen timestamp, connection frequency, duration, and volume of data sent vs. received.\n   - Inspect communication patterns for beaconing intervals, jitter, or keep-alive pulses characteristic of C2 frameworks.\n2. Inspect application layer data (if available via Proxy, TLS inspection, or PCAP):\n   - Review HTTP/HTTPS request headers, user-agent strings, URI paths, and domain names (SNI / HTTP Host header).\n   - Check if the traffic encapsulates unauthorized protocols (e.g., DNS tunneling, ICMP tunneling, SSH over non-standard ports).\n3. Correlate with endpoint telemetry:\n   - Identify which executable or service initiated the outbound socket connection on the host.\n   - Check if the executable is a recognized system binary (`svchost.exe`, `powershell.exe`, `rundll32.exe`) or an unknown dropped binary in `%TEMP%` or `%APPDATA%`.\n   - Inspect parent process and command line arguments.\n4. Scope across the enterprise:",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 2
+    }
+  },
+  {
+    "text": "- Inspect parent process and command line arguments.\n4. Scope across the enterprise:\n   - Search firewall, proxy, and DNS logs across all internal network segments to identify any other internal hosts communicating with the same external IP address or subnet.\n5. Assess exfiltration risk:\n   - Calculate total data egress volume to the destination IP.\n   - Cross-reference with internal file access logs or archive creation utilities (`7z.exe`, `rar.exe`) executed shortly before the transfer.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 3
+    }
+  },
+  {
+    "text": "## Containment Steps\n1. Network Perimeter Blocking:\n   - Immediately apply an egress and ingress block rule for the malicious external IP address and associated subnet on boundary firewalls and security gateways.\n2. Proxy and DNS Sinkhole:\n   - Add associated domain names or IP addresses to enterprise DNS sinkhole resolvers and web proxy blocklists.\n3. Host Isolation:\n   - If outbound C2 communication or active beaconing is confirmed from an internal endpoint, isolate the host from the network using EDR.\n4. Routing / Null-Route:\n   - In cases of heavy incoming DDoS or distributed scanning, coordinate with network engineering to null-route or blackhole traffic at border routers.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 4
+    }
+  },
+  {
+    "text": "## Eradication Steps\n1. Terminate any active network sessions, malicious processes, or unauthorized daemons on the affected internal host.\n2. Remove dropped malware payloads, staging archives, or unauthorized tools identified during the endpoint investigation.\n3. Eliminate any persistence mechanisms (scheduled tasks, services, startup registry entries) linked to the malicious process.\n4. If a vulnerability on an exposed server was exploited to initiate the connection, apply vendor security patches or disable vulnerable services immediately.\n\n## Recovery Steps\n1. Validate network firewall and proxy policy changes to confirm the block rule is actively dropping traffic without disrupting legitimate business dependencies.\n2. Reconnect the remediated internal host to the network after confirming clean EDR scans and absence of anomalous network connections.\n3. Verify that all internal and external DNS resolutions for the affected host resolve strictly to legitimate authorized destinations.\n4. Monitor perimeter firewall logs and host network telemetry for 14 days for repeated connection attempts to the blocked IP or related infrastructure.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 5
+    }
+  },
+  {
+    "text": "## Evidence to Collect\n- Packet captures (PCAP files) or NetFlow records capturing connection handshakes, timestamps, payloads, and volume.\n- Firewall, proxy, and DNS log extracts documenting complete communication history with the external IP.\n- Threat intelligence reports from ThreatFox, AbuseIPDB, and WHOIS records detailing the IP registration and historical threat records.\n- EDR process telemetry linking network sockets to specific local processes, hashes, and command lines.\n- List of internal files accessed or staged prior to any detected large outbound data transfers.\n\n## Escalation Criteria\n- Outbound network traffic is confirmed to be an active Command and Control (C2) channel for a known ransomware or APT group.\n- Substantial data egress volume (gigabytes or terabytes) detected from sensitive file repositories or database servers to an untrusted external IP.\n- The external IP address successfully exploited an externally facing critical enterprise system.\n- Multiple internal systems across different subnets are simultaneously beaconing to the same external infrastructure, indicating widespread lateral spread.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 6
+    }
+  },
+  {
+    "text": "## Closure Criteria\n- Malicious external IP addresses and associated infrastructure are blocked across all perimeter security devices.\n- All internal hosts communicating with the malicious IP have been identified, contained, investigated, and cleared of malware.\n- Data exfiltration assessments are completed and findings reported to relevant incident stakeholders.\n- Perimeter and internal network telemetry confirms complete cessation of communication to the malicious IP.",
+    "metadata": {
+      "playbook_name": "Suspicious IP and Network Activity",
+      "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+      "source": "suspicious_ip_network.md",
+      "chunk_id": 7
+    }
+  },
+  {
+    "text": "# Playbook: Suspicious PowerShell Execution\n\n## Incident Type\nExecution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse\n\n## Purpose\nProvide structured guidance for SOC analysts to investigate, validate, contain, and remediate suspicious, obfuscated, or unauthorized PowerShell activity detected on Windows endpoints and servers.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 0
+    }
+  },
+  {
+    "text": "## Trigger Conditions\n- EDR or SIEM alert for PowerShell execution with high-risk command-line switches:\n  - Base64 encoded commands (`-e`, `-enc`, `-encodedcommand`).\n  - Execution policy bypass (`-ep bypass`, `-executionpolicy bypass`, `-noprofile`, `-windowstyle hidden`).\n  - In-memory download cradles (`DownloadString`, `DownloadFile`, `Invoke-WebRequest`, `Net.WebClient`).\n- Process creation alert where PowerShell is spawned by an unexpected parent process (e.g., `winword.exe`, `excel.exe`, `wmiprvse.exe`, `w3wp.exe`, `sqlservr.exe`, `svchost.exe`).\n- Script block logging (Event ID 4104) containing known attack framework keywords (e.g., `Mimikatz`, `Invoke-Shellcode`, `BloodHound`, `Empire`, `Cobalt Strike`).\n- Execution of commands manipulating system startup, services, scheduled tasks (`schtasks.exe`), or registry run keys via PowerShell.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 1
+    }
+  },
+  {
+    "text": "## Initial Triage\n1. Review the alert details: host name, user account context (user vs. SYSTEM / service account), parent process name, process ID, execution time, and full command line string.\n2. Examine the parent-child process relationship:\n   - Legitimate admin tool (e.g., SCCM, PDQ, InTune) vs. non-standard parent (e.g., Office application, web browser, external service).\n3. Check for obfuscation:\n   - If an encoded command (`-EncodedCommand`) is present, decode the Base64 Unicode string into readable ASCII text.\n4. Determine whether the script was executed interactively by a logged-in user or automatically by a background process/service.\n5. Verify if the activity corresponds to documented maintenance windows, IT scripts, or standard system administrator duties.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 2
+    }
+  },
+  {
+    "text": "## Investigation Steps\n1. Decode and analyze the script payload:\n   - Decode Base64 strings, nested functions, or string concatenation routines.\n   - Identify targets of the script: downloaded URLs, dropped files, registry modifications, API calls, or network sockets opened.\n2. Review PowerShell Event Logs:\n   - Event ID 4104 (Script Block Logging) to see the full, de-obfuscated script content that was executed.\n   - Event ID 4103 (Module Logging) and Event ID 400 (Engine Lifecycle).\n3. Investigate process actions:\n   - Check what child processes were spawned by PowerShell (e.g., `cmd.exe`, `schtasks.exe`, `whoami.exe`, `net.exe`, `reg.exe`).\n   - Identify any files created or modified in directories such as `C:\\Windows\\Temp\\`, `C:\\ProgramData\\`, or user `%APPDATA%`.\n4. Inspect network connections:\n   - Correlate timestamps with firewall, EDR network events, or proxy logs to detect external outbound network connections initiated by the PowerShell PID.\n   - Check destination IP/domain reputation against ThreatFox or URLhaus.\n5. Check for persistence and credential access:",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 3
+    }
+  },
+  {
+    "text": "- Check destination IP/domain reputation against ThreatFox or URLhaus.\n5. Check for persistence and credential access:\n   - Look for commands modifying registry keys, registering scheduled tasks, dumping credentials from LSASS, or querying Active Directory.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 4
+    }
+  },
+  {
+    "text": "## Containment Steps\n1. Process Termination:\n   - Kill the suspicious PowerShell process and all associated child process trees immediately.\n2. Host Isolation:\n   - If the script executed an unknown remote payload, downloaded a secondary binary, or initiated unauthorized network connections, isolate the host from the network via EDR.\n3. Network Block:\n   - Block any external IP addresses, domains, or download URLs referenced in the script at the perimeter firewall and web proxy.\n4. Account Credential Protection:\n   - If the PowerShell process ran under a privileged user or service account, immediately revoke active tokens and trigger an emergency password reset.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 5
+    }
+  },
+  {
+    "text": "## Eradication Steps\n1. Remove all files, staging directories, or scripts dropped to the file system during the PowerShell execution.\n2. Remove any persistence mechanisms established:\n   - Delete scheduled tasks created by the script (e.g., via `schtasks /delete /tn ...`).\n   - Remove unauthorized registry entries created in Run/RunOnce or services.\n3. Verify that any altered security settings (e.g., Windows Defender exclusions or disabled firewall profiles) are restored to hardened baseline standards.\n4. Run an EDR and antivirus scan across the entire system.\n\n## Recovery Steps\n1. Validate system integrity by confirming no unauthorized background jobs or hidden processes remain active.\n2. Remove the host from network isolation once the machine has been fully cleaned and verified.\n3. If the script was part of legitimate administration that triggered false positive alerts, work with the systems engineering team to sign scripts with internal certificates and establish appropriate EDR tuning rules.\n4. Monitor endpoint process execution logs for 7 days for recurring anomalous PowerShell sessions.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 6
+    }
+  },
+  {
+    "text": "## Evidence to Collect\n- Full command-line arguments and decoded Base64 script content.\n- PowerShell Event Logs (Event IDs 4104, 4103, 400, 800) covering the incident window.\n- EDR process telemetry: parent process chain, spawned processes, file writes, and network connections.\n- Hashes and file samples of any scripts or payloads written to disk.\n- Memory dump of the host if in-memory-only reflective DLL injection or beaconing is suspected.\n\n## Escalation Criteria\n- PowerShell execution resulted in a successful in-memory Cobalt Strike / Meterpreter beacon or active C2 channel.\n- Credential harvesting commands targeted `lsass.exe` or exported Active Directory ntds.dit.\n- The script performed lateral movement across the network using WinRM, WMI, or PsExec.\n- Execution occurred on high-value infrastructure (e.g., Active Directory Domain Controllers, PKI servers).",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 7
+    }
+  },
+  {
+    "text": "## Closure Criteria\n- Suspicious PowerShell processes have been terminated and root-cause script or entry vector identified.\n- All dropped files, persistence entries (scheduled tasks, services, registry keys), and network connections are eradicated.\n- Enterprise-wide sweep confirms no other systems were impacted by the same script or download cradle.\n- Post-remediation verification confirms normal operational status with no secondary alerts.",
+    "metadata": {
+      "playbook_name": "Suspicious PowerShell Execution",
+      "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+      "source": "suspicious_powershell.md",
+      "chunk_id": 8
+    }
+  }
+]

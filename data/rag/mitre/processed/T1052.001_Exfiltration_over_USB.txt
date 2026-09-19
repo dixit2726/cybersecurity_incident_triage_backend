@@ -1,0 +1,23 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1052.001
+
+Technique Name: Exfiltration over USB
+
+Description:
+Adversaries may attempt to exfiltrate data over a USB connected physical device. In certain circumstances, such as an air-gapped network compromise, exfiltration could occur via a USB device introduced by a user. The USB device could be used as the final exfiltration point or to hop between otherwise disconnected systems.
+
+Tactics:
+exfiltration
+
+Platforms:
+Linux, Windows, macOS
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

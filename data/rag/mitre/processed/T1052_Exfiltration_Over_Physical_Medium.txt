@@ -1,0 +1,23 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1052
+
+Technique Name: Exfiltration Over Physical Medium
+
+Description:
+Adversaries may attempt to exfiltrate data via a physical medium, such as a removable drive. In certain circumstances, such as an air-gapped network compromise, exfiltration could occur via a physical medium or device introduced by a user. Such media could be an external hard drive, USB drive, cellular phone, MP3 player, or other removable storage and processing device. The physical medium or device could be used as the final exfiltration point or to hop between otherwise disconnected systems.
+
+Tactics:
+exfiltration
+
+Platforms:
+Linux, macOS, Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

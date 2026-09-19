@@ -1,0 +1,23 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1041
+
+Technique Name: Exfiltration Over C2 Channel
+
+Description:
+Adversaries may steal data by exfiltrating it over an existing command and control channel. Stolen data is encoded into the normal communications channel using the same protocol as command and control communications.
+
+Tactics:
+exfiltration
+
+Platforms:
+ESXi, Linux, macOS, Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

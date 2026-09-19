@@ -1,0 +1,30 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1547.010
+
+Technique Name: Port Monitors
+
+Description:
+Adversaries may use port monitors to run an adversary supplied DLL during system boot for persistence or privilege escalation. A port monitor can be set through the AddMonitor API call to set a DLL to be loaded at startup.(Citation: AddMonitor) This DLL can be located in C:\Windows\System32 and will be loaded and run by the print spooler service, `spoolsv.exe`, under SYSTEM level permissions on boot.(Citation: Bloxham) 
+
+Alternatively, an arbitrary DLL can be loaded if permissions allow writing a fully-qualified pathname for that DLL to the `Driver` value of an existing or new arbitrarily named subkey of HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors. The Registry key contains entries for the following:
+
+* Local Port
+* Standard TCP/IP Port
+* USB Monitor
+* WSD Port
+
+Tactics:
+persistence, privilege-escalation
+
+Platforms:
+Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

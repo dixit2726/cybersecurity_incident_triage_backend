@@ -1,0 +1,27 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1115
+
+Technique Name: Clipboard Data
+
+Description:
+Adversaries may collect data stored in the clipboard from users copying information within or between applications. 
+
+For example, on Windows adversaries can access clipboard data by using clip.exe or Get-Clipboard.(Citation: MSDN Clipboard)(Citation: clip_win_server)(Citation: CISA_AA21_200B) Additionally, adversaries may monitor then replace users’ clipboard with their data (e.g., [Transmitted Data Manipulation](https://attack.mitre.org/techniques/T1565/002)).(Citation: mining_ruby_reversinglabs)
+
+macOS and Linux also have commands, such as pbpaste, to grab clipboard contents.(Citation: Operating with EmPyre)
+
+Tactics:
+collection
+
+Platforms:
+Linux, macOS, Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

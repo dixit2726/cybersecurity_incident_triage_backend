@@ -1,0 +1,23 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1030
+
+Technique Name: Data Transfer Size Limits
+
+Description:
+An adversary may exfiltrate data in fixed size chunks instead of whole files or limit packet sizes below certain thresholds. This approach may be used to avoid triggering network data transfer threshold alerts.
+
+Tactics:
+exfiltration
+
+Platforms:
+Linux, macOS, Windows, ESXi
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

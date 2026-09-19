@@ -1,0 +1,317 @@
+[
+  {
+    "embedding_index": 0,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 0
+  },
+  {
+    "embedding_index": 1,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 1
+  },
+  {
+    "embedding_index": 2,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 2
+  },
+  {
+    "embedding_index": 3,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 3
+  },
+  {
+    "embedding_index": 4,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 4
+  },
+  {
+    "embedding_index": 5,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 5
+  },
+  {
+    "embedding_index": 6,
+    "playbook_name": "Brute Force Attack",
+    "incident_type": "Authentication Anomaly / Credential Access / Brute Force & Password Spraying",
+    "source": "brute_force.md",
+    "chunk_id": 6
+  },
+  {
+    "embedding_index": 7,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 0
+  },
+  {
+    "embedding_index": 8,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 1
+  },
+  {
+    "embedding_index": 9,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 2
+  },
+  {
+    "embedding_index": 10,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 3
+  },
+  {
+    "embedding_index": 11,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 4
+  },
+  {
+    "embedding_index": 12,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 5
+  },
+  {
+    "embedding_index": 13,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 6
+  },
+  {
+    "embedding_index": 14,
+    "playbook_name": "Credential Compromise",
+    "incident_type": "Identity & Access / Credential Access / Account Takeover (ATO) / Unauthorized Access",
+    "source": "credential_compromise.md",
+    "chunk_id": 7
+  },
+  {
+    "embedding_index": 15,
+    "playbook_name": "Malware Infection",
+    "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+    "source": "malware_infection.md",
+    "chunk_id": 0
+  },
+  {
+    "embedding_index": 16,
+    "playbook_name": "Malware Infection",
+    "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+    "source": "malware_infection.md",
+    "chunk_id": 1
+  },
+  {
+    "embedding_index": 17,
+    "playbook_name": "Malware Infection",
+    "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+    "source": "malware_infection.md",
+    "chunk_id": 2
+  },
+  {
+    "embedding_index": 18,
+    "playbook_name": "Malware Infection",
+    "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+    "source": "malware_infection.md",
+    "chunk_id": 3
+  },
+  {
+    "embedding_index": 19,
+    "playbook_name": "Malware Infection",
+    "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+    "source": "malware_infection.md",
+    "chunk_id": 4
+  },
+  {
+    "embedding_index": 20,
+    "playbook_name": "Malware Infection",
+    "incident_type": "Endpoint Compromise / Malicious Code Execution / Malware Infection (Trojan, Ransomware, Infostealer, Worm)",
+    "source": "malware_infection.md",
+    "chunk_id": 5
+  },
+  {
+    "embedding_index": 21,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 0
+  },
+  {
+    "embedding_index": 22,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 1
+  },
+  {
+    "embedding_index": 23,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 2
+  },
+  {
+    "embedding_index": 24,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 3
+  },
+  {
+    "embedding_index": 25,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 4
+  },
+  {
+    "embedding_index": 26,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 5
+  },
+  {
+    "embedding_index": 27,
+    "playbook_name": "Phishing Attack",
+    "incident_type": "Social Engineering / Phishing & Spear-Phishing / Credential Harvester & Malicious Attachment",
+    "source": "phishing_attack.md",
+    "chunk_id": 6
+  },
+  {
+    "embedding_index": 28,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 0
+  },
+  {
+    "embedding_index": 29,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 1
+  },
+  {
+    "embedding_index": 30,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 2
+  },
+  {
+    "embedding_index": 31,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 3
+  },
+  {
+    "embedding_index": 32,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 4
+  },
+  {
+    "embedding_index": 33,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 5
+  },
+  {
+    "embedding_index": 34,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 6
+  },
+  {
+    "embedding_index": 35,
+    "playbook_name": "Suspicious IP and Network Activity",
+    "incident_type": "Network Security / Command and Control (C2) / Exfiltration / Malicious IP Communication & Scanning",
+    "source": "suspicious_ip_network.md",
+    "chunk_id": 7
+  },
+  {
+    "embedding_index": 36,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 0
+  },
+  {
+    "embedding_index": 37,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 1
+  },
+  {
+    "embedding_index": 38,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 2
+  },
+  {
+    "embedding_index": 39,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 3
+  },
+  {
+    "embedding_index": 40,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 4
+  },
+  {
+    "embedding_index": 41,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 5
+  },
+  {
+    "embedding_index": 42,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 6
+  },
+  {
+    "embedding_index": 43,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 7
+  },
+  {
+    "embedding_index": 44,
+    "playbook_name": "Suspicious PowerShell Execution",
+    "incident_type": "Execution / Defense Evasion / Suspicious Scripting / Living Off The Land (LotL) / PowerShell Abuse",
+    "source": "suspicious_powershell.md",
+    "chunk_id": 8
+  }
+]

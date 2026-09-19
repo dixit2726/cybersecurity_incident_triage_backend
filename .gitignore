@@ -1,0 +1,41 @@
+# Environment & Secrets
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+!*.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node / Frontend dependencies & builds
+node_modules/
+dist/
+dist-ssr/
+.output/
+.tanstack/
+.wrangler/
+.vinxi/
+.nitro/
+
+# Independent Frontend Repository
+soc-incident-triage-console-frontend/
+
+# Local Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & Temporary files
+*.log
+logs/
+*.tmp
+*.bak

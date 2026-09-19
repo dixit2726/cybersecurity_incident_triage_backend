@@ -1,0 +1,29 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1136.001
+
+Technique Name: Local Account
+
+Description:
+Adversaries may create a local account to maintain access to victim systems. Local accounts are those configured by an organization for use by users, remote support, services, or for administration on a single system or service. 
+
+For example, with a sufficient level of access, the Windows net user /add command can be used to create a local account.  In Linux, the `useradd` command can be used, while on macOS systems, the dscl -create command can be used. Local accounts may also be added to network devices, often via common [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) commands such as username, to ESXi servers via `esxcli system account add`, or to Kubernetes clusters using the `kubectl` utility.(Citation: cisco_username_cmd)(Citation: Kubernetes Service Accounts Security)
+
+Adversaries may also create new local accounts on network firewall management consoles – for example, by exploiting a vulnerable firewall management system, threat actors may be able to establish super-admin accounts that could be used to modify firewall rules and gain further access to the network.(Citation: Cyber Security News)
+
+Such accounts may be used to establish secondary credentialed access that do not require persistent remote access tools to be deployed on the system.
+
+Tactics:
+persistence
+
+Platforms:
+Containers, ESXi, Linux, macOS, Network Devices, Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.

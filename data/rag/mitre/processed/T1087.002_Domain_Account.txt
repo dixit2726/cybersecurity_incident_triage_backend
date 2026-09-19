@@ -1,0 +1,25 @@
+MITRE ATT&CK TECHNIQUE
+
+Technique ID: T1087.002
+
+Technique Name: Domain Account
+
+Description:
+Adversaries may attempt to get a listing of domain accounts. This information can help adversaries determine which domain accounts exist to aid in follow-on behavior such as targeting specific accounts which possess particular privileges.
+
+Commands such as net user /domain and net group /domain of the [Net](https://attack.mitre.org/software/S0039) utility, dscacheutil -q group on macOS, and ldapsearch on Linux can list domain users and groups. [PowerShell](https://attack.mitre.org/techniques/T1059/001) cmdlets including Get-ADUser and Get-ADGroupMember may enumerate members of Active Directory groups.(Citation: CrowdStrike StellarParticle January 2022)
+
+Tactics:
+discovery
+
+Platforms:
+Linux, macOS, Windows
+
+Detection:
+Not specified in MITRE ATT&CK data.
+
+Permissions Required:
+Not specified in MITRE ATT&CK data.
+
+Data Sources:
+Not specified in MITRE ATT&CK data.
