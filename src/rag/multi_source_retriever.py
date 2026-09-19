@@ -14,7 +14,10 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+from typing import Any, Dict, Optional
+import numpy as np
 from src.rag.cisa_retriever import CisaRetriever
+from src.rag.embedding_provider import GeminiEmbeddingProvider, get_embedding_provider
 from src.rag.mitre_retriever import MitreRetriever
 from src.rag.playbook_retriever import PlaybookRetriever
 
@@ -25,37 +28,33 @@ from src.rag.playbook_retriever import PlaybookRetriever
 
 class MultiSourceRetriever:
 
-    def __init__(self):
+    def __init__(self, embedding_provider: Optional[GeminiEmbeddingProvider] = None):
         print("Initializing Multi-Source RAG Orchestrator...")
+        self.embedding_provider = embedding_provider or get_embedding_provider()
+
         print("1. Loading MITRE ATT&CK retriever...")
-        self.mitre_retriever = MitreRetriever()
+        self.mitre_retriever = MitreRetriever(embedding_provider=self.embedding_provider)
 
         print("2. Loading Incident Playbooks retriever...")
-        self.playbook_retriever = PlaybookRetriever()
+        self.playbook_retriever = PlaybookRetriever(embedding_provider=self.embedding_provider)
 
         print("3. Loading CISA Guidance retriever...")
-        self.cisa_retriever = CisaRetriever()
+        self.cisa_retriever = CisaRetriever(embedding_provider=self.embedding_provider)
 
         print("Multi-Source RAG Orchestrator ready.\n")
 
-    def retrieve(
+    def retrieve_by_vector(
         self,
-        query: str,
+        query_vector: np.ndarray,
+        query: str = "",
         mitre_top_k: int = 5,
         playbook_top_k: int = 5,
         cisa_top_k: int = 5
     ) -> Dict[str, Any]:
-        """
-        Send the incident query independently to MITRE, Playbooks, and CISA retrievers.
-        Scores remain strictly source-specific without cross-source merging or comparison.
-        """
-        if not query or not query.strip():
-            raise ValueError("Query cannot be empty.")
-
-        # Query all three retrievers independently with the exact same query
-        mitre_results = self.mitre_retriever.retrieve(query, top_k=mitre_top_k)
-        playbook_results = self.playbook_retriever.retrieve(query, top_k=playbook_top_k)
-        cisa_results = self.cisa_retriever.retrieve(query, top_k=cisa_top_k)
+        """Query all three retrievers independently using a precomputed query vector."""
+        mitre_results = self.mitre_retriever.search_by_vector(query_vector, top_k=mitre_top_k)
+        playbook_results = self.playbook_retriever.search_by_vector(query_vector, top_k=playbook_top_k)
+        cisa_results = self.cisa_retriever.search_by_vector(query_vector, top_k=cisa_top_k)
 
         # Normalize CISA items to ensure required dictionary keys are cleanly present
         formatted_cisa = []
@@ -108,6 +107,44 @@ class MultiSourceRetriever:
                 "cisa_results": len(formatted_cisa),
             }
         }
+
+    def retrieve(
+        self,
+        query: str,
+        mitre_top_k: int = 5,
+        playbook_top_k: int = 5,
+        cisa_top_k: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Embed the incident query ONCE using the shared Gemini embedding provider,
+        then query MITRE, Playbooks, and CISA retrievers with the vector.
+        Scores remain strictly source-specific without cross-source merging or comparison.
+        """
+        if not query or not query.strip():
+            raise ValueError("Query cannot be empty.")
+
+        try:
+            query_vector = self.embedding_provider.embed_text(query)
+            return self.retrieve_by_vector(
+                query_vector,
+                query=query,
+                mitre_top_k=mitre_top_k,
+                playbook_top_k=playbook_top_k,
+                cisa_top_k=cisa_top_k,
+            )
+        except Exception as e:
+            print(f"[WARNING] MultiSourceRetriever embedding failed ({e}). Returning graceful fallback empty candidate lists.")
+            return {
+                "query": query,
+                "mitre": [],
+                "playbooks": [],
+                "cisa": [],
+                "summary": {
+                    "mitre_results": 0,
+                    "playbook_results": 0,
+                    "cisa_results": 0,
+                },
+            }
 
 
 # ---------------------------------------------------------

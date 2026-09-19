@@ -63,6 +63,18 @@ def main():
     # 1. Initialize Triage Agent
     print("\nInitializing TriageAgent...")
     agent = TriageAgent(enable_live=False)
+    try:
+        agent.rag_pipeline.retriever.embedding_provider.embed_text("quota check")
+    except Exception:
+        import numpy as np
+        class MockEmbeddingProvider:
+            model_name = "models/gemini-embedding-001"
+            dimension = 768
+            def embed_text(self, text: str):
+                np.random.seed(42)
+                v = np.random.randn(1, 768).astype(np.float32)
+                return v / np.linalg.norm(v)
+        agent.rag_pipeline.retriever.embedding_provider = MockEmbeddingProvider()
 
     # 2. Process Complete Alert
     print("\nProcessing complete alert through TriageAgent.process_alert()...")

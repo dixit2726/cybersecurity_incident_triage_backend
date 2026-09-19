@@ -1,10 +1,11 @@
 import json
 import os
 import sys
+from typing import Any, Dict, List, Optional
 
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from src.rag.embedding_provider import GeminiEmbeddingProvider, get_embedding_provider
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -41,19 +42,15 @@ CHUNKS_FILE = os.path.join(
 )
 
 
-# ---------------------------------------------------------
-# Model
-# ---------------------------------------------------------
-
-MODEL_NAME = "all-MiniLM-L6-v2"
-
-
 def resolve_path(path: str) -> str:
     """
     Resolve path relative to current working directory or project root.
     """
-    if os.path.exists(path):
+    if os.path.isabs(path) and os.path.exists(path):
         return path
+
+    if os.path.exists(path):
+        return os.path.abspath(path)
 
     script_relative = os.path.abspath(
         os.path.join(
@@ -66,7 +63,7 @@ def resolve_path(path: str) -> str:
     if os.path.exists(script_relative):
         return script_relative
 
-    return path
+    return os.path.abspath(path)
 
 
 # ---------------------------------------------------------
@@ -75,12 +72,18 @@ def resolve_path(path: str) -> str:
 
 class PlaybookRetriever:
 
-    def __init__(self):
+    def __init__(
+        self,
+        index_file: str = INDEX_FILE,
+        metadata_file: str = METADATA_FILE,
+        chunks_file: str = CHUNKS_FILE,
+        embedding_provider: Optional[GeminiEmbeddingProvider] = None,
+    ):
         print("Loading Playbooks retriever...")
 
-        resolved_index_file = resolve_path(INDEX_FILE)
-        resolved_metadata_file = resolve_path(METADATA_FILE)
-        resolved_chunks_file = resolve_path(CHUNKS_FILE)
+        resolved_index_file = resolve_path(index_file)
+        resolved_metadata_file = resolve_path(metadata_file)
+        resolved_chunks_file = resolve_path(chunks_file)
 
         # Load FAISS index
         print(f"Loading FAISS index from: {resolved_index_file}")
@@ -102,9 +105,8 @@ class PlaybookRetriever:
         with open(resolved_chunks_file, "r", encoding="utf-8") as f:
             self.chunks = json.load(f)
 
-        # Load embedding model
-        print(f"Loading embedding model: {MODEL_NAME}...")
-        self.model = SentenceTransformer(MODEL_NAME)
+        # Shared embedding provider
+        self.embedding_provider = embedding_provider or get_embedding_provider()
 
         # Validate alignment
         self._validate()
@@ -133,38 +135,21 @@ class PlaybookRetriever:
     # Retrieve
     # -----------------------------------------------------
 
-    def retrieve(
+    def search_by_vector(
         self,
-        query: str,
-        top_k: int = 5
-    ):
-        if not query or not query.strip():
-            raise ValueError("Query cannot be empty.")
+        query_embedding: np.ndarray,
+        top_k: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Search FAISS index directly using a precomputed query vector."""
+        if query_embedding.ndim == 1:
+            query_embedding = np.asarray([query_embedding], dtype=np.float32)
+        elif query_embedding.dtype != np.float32:
+            query_embedding = query_embedding.astype(np.float32)
 
-        # Generate normalized query embedding
-        query_embedding = self.model.encode(
-            [query],
-            normalize_embeddings=True
-        )
-
-        query_embedding = np.asarray(
-            query_embedding,
-            dtype="float32"
-        )
-
-        # Search FAISS index
-        scores, indices = self.index.search(
-            query_embedding,
-            top_k
-        )
-
+        scores, indices = self.index.search(query_embedding, top_k)
         results = []
 
-        for score, idx in zip(
-            scores[0],
-            indices[0]
-        ):
-            # Ignore invalid FAISS indexes (-1)
+        for score, idx in zip(scores[0], indices[0]):
             if idx < 0:
                 continue
 
@@ -177,10 +162,21 @@ class PlaybookRetriever:
                 "incident_type": metadata["incident_type"],
                 "source": metadata["source"],
                 "chunk_id": metadata["chunk_id"],
-                "text": chunk["text"]
+                "text": chunk["text"],
             })
 
         return results
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> List[Dict[str, Any]]:
+        if not query or not query.strip():
+            raise ValueError("Query cannot be empty.")
+
+        query_embedding = self.embedding_provider.embed_text(query)
+        return self.search_by_vector(query_embedding, top_k=top_k)
 
 
 # ---------------------------------------------------------

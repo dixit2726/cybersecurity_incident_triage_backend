@@ -1,9 +1,15 @@
 import json
 import os
+import sys
+from typing import Any, Dict, List, Optional
 
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from src.rag.embedding_provider import GeminiEmbeddingProvider, get_embedding_provider
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 
 # ---------------------------------------------------------
@@ -35,11 +41,17 @@ CHUNKS_FILE = os.path.join(
 )
 
 
-# ---------------------------------------------------------
-# Model
-# ---------------------------------------------------------
-
-MODEL_NAME = "all-MiniLM-L6-v2"
+def resolve_path(path: str) -> str:
+    """Resolve path relative to current working directory or project root."""
+    if os.path.isabs(path) and os.path.exists(path):
+        return path
+    if os.path.exists(path):
+        return os.path.abspath(path)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    proj_path = os.path.join(project_root, path)
+    if os.path.exists(proj_path):
+        return proj_path
+    return os.path.abspath(path)
 
 
 # ---------------------------------------------------------
@@ -48,35 +60,38 @@ MODEL_NAME = "all-MiniLM-L6-v2"
 
 class MitreRetriever:
 
-    def __init__(self):
-
+    def __init__(
+        self,
+        index_file: str = INDEX_FILE,
+        metadata_file: str = METADATA_FILE,
+        chunks_file: str = CHUNKS_FILE,
+        embedding_provider: Optional[GeminiEmbeddingProvider] = None,
+    ):
         print("Loading MITRE ATT&CK retriever...")
+
+        resolved_index_file = resolve_path(index_file)
+        resolved_metadata_file = resolve_path(metadata_file)
+        resolved_chunks_file = resolve_path(chunks_file)
 
         # Load FAISS index
         print("Loading FAISS index...")
-        self.index = faiss.read_index(INDEX_FILE)
+        self.index = faiss.read_index(resolved_index_file)
 
         # Load metadata
         print("Loading metadata...")
-        with open(
-            METADATA_FILE,
-            "r",
-            encoding="utf-8"
-        ) as f:
+        with open(resolved_metadata_file, "r", encoding="utf-8") as f:
             self.metadata = json.load(f)
 
         # Load chunks
         print("Loading chunks...")
-        with open(
-            CHUNKS_FILE,
-            "r",
-            encoding="utf-8"
-        ) as f:
+        with open(resolved_chunks_file, "r", encoding="utf-8") as f:
             self.chunks = json.load(f)
 
-        # Load embedding model
-        print("Loading embedding model...")
-        self.model = SentenceTransformer(MODEL_NAME)
+        if len(self.chunks) > len(self.metadata):
+            self.chunks = self.chunks[:len(self.metadata)]
+
+        # Shared embedding provider
+        self.embedding_provider = embedding_provider or get_embedding_provider()
 
         # Validate
         self._validate()
@@ -86,66 +101,40 @@ class MitreRetriever:
             f"({self.index.ntotal:,} vectors)"
         )
 
-
     # -----------------------------------------------------
     # Validation
     # -----------------------------------------------------
 
     def _validate(self):
-
         if self.index.ntotal != len(self.metadata):
-
             raise ValueError(
-                "FAISS index count does not match metadata count."
+                f"FAISS index count ({self.index.ntotal}) does not match metadata count ({len(self.metadata)})."
             )
 
         if len(self.metadata) != len(self.chunks):
-
             raise ValueError(
-                "Metadata count does not match chunk count."
+                f"Metadata count ({len(self.metadata)}) does not match chunk count ({len(self.chunks)})."
             )
-
 
     # -----------------------------------------------------
     # Retrieve
     # -----------------------------------------------------
 
-    def retrieve(
+    def search_by_vector(
         self,
-        query: str,
-        top_k: int = 5
-    ):
+        query_embedding: np.ndarray,
+        top_k: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Search FAISS index directly using a precomputed query vector."""
+        if query_embedding.ndim == 1:
+            query_embedding = np.asarray([query_embedding], dtype=np.float32)
+        elif query_embedding.dtype != np.float32:
+            query_embedding = query_embedding.astype(np.float32)
 
-        if not query or not query.strip():
-
-            raise ValueError(
-                "Query cannot be empty."
-            )
-
-        # Generate query embedding
-        query_embedding = self.model.encode(
-            [query],
-            normalize_embeddings=True
-        )
-
-        query_embedding = np.asarray(
-            query_embedding,
-            dtype="float32"
-        )
-
-        # Search FAISS
-        scores, indices = self.index.search(
-            query_embedding,
-            top_k
-        )
-
+        scores, indices = self.index.search(query_embedding, top_k)
         results = []
 
-        for score, idx in zip(
-            scores[0],
-            indices[0]
-        ):
-
+        for score, idx in zip(scores[0], indices[0]):
             if idx < 0:
                 continue
 
@@ -158,10 +147,21 @@ class MitreRetriever:
                 "technique_name": metadata["technique_name"],
                 "source": metadata["source"],
                 "chunk_id": metadata["chunk_id"],
-                "text": chunk["text"]
+                "text": chunk["text"],
             })
 
         return results
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> List[Dict[str, Any]]:
+        if not query or not query.strip():
+            raise ValueError("Query cannot be empty.")
+
+        query_embedding = self.embedding_provider.embed_text(query)
+        return self.search_by_vector(query_embedding, top_k=top_k)
 
 
 # ---------------------------------------------------------

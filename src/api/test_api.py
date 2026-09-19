@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from unittest.mock import MagicMock
+import numpy as np
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -64,11 +65,25 @@ class FailingMockLLM:
         raise RuntimeError("Simulated Google Gemini API 503 Service Unavailable / Rate Limit")
 
 
+class MockEmbeddingProvider:
+    model_name = "models/gemini-embedding-001"
+    dimension = 768
+
+    def embed_text(self, text: str) -> np.ndarray:
+        # Deterministic synthetic 768-dim query vector for RAG retrieval in unit tests
+        np.random.seed(42)
+        vec = np.random.randn(1, 768).astype(np.float32)
+        norm = np.linalg.norm(vec)
+        return vec / (norm if norm > 0 else 1.0)
+
+
 def build_test_triage_agent(failing_llm: bool = False) -> TriageAgent:
     """Build a TriageAgent with real RAG retriever and mocked LLM (no live Gemini calls)."""
     mock_llm = FailingMockLLM() if failing_llm else DynamicMockLLM()
     gemini_engine = GeminiTriageEngine(llm_client=mock_llm)
-    return TriageAgent(gemini_engine=gemini_engine, enable_live=False)
+    agent = TriageAgent(gemini_engine=gemini_engine, enable_live=False)
+    agent.rag_pipeline.retriever.embedding_provider = MockEmbeddingProvider()
+    return agent
 
 
 class TestFastAPIBackend(unittest.TestCase):

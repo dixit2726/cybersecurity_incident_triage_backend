@@ -1,11 +1,11 @@
 import json
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from src.rag.embedding_provider import GeminiEmbeddingProvider, get_embedding_provider
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -40,13 +40,6 @@ CHUNKS_FILE = os.path.join(
 )
 
 
-# ---------------------------------------------------------
-# Model
-# ---------------------------------------------------------
-
-MODEL_NAME = "all-MiniLM-L6-v2"
-
-
 def resolve_path(path: str) -> str:
     """
     Resolve path relative to current working directory or project root.
@@ -75,7 +68,7 @@ class CisaRetriever:
         index_file: str = INDEX_FILE,
         metadata_file: str = METADATA_FILE,
         chunks_file: str = CHUNKS_FILE,
-        model_name: str = MODEL_NAME,
+        embedding_provider: Optional[GeminiEmbeddingProvider] = None,
     ):
         print("Loading CISA retriever...")
 
@@ -103,9 +96,8 @@ class CisaRetriever:
         with open(resolved_chunks_file, "r", encoding="utf-8") as f:
             self.chunks = json.load(f)
 
-        # 4. Load embedding model
-        print(f"Loading embedding model: {model_name}...")
-        self.model = SentenceTransformer(model_name)
+        # 4. Shared embedding provider
+        self.embedding_provider = embedding_provider or get_embedding_provider()
 
         # 5. Validate alignment
         self._validate()
@@ -131,34 +123,21 @@ class CisaRetriever:
                 f"does not match chunk count ({len(self.chunks)})."
             )
 
-    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """
-        Retrieve top_k most relevant CISA knowledge chunks for a given query.
-        """
-        if not query or not query.strip():
-            raise ValueError("Query cannot be empty.")
+    def search_by_vector(
+        self,
+        query_embedding: np.ndarray,
+        top_k: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Search FAISS index directly using a precomputed query vector."""
+        if query_embedding.ndim == 1:
+            query_embedding = np.asarray([query_embedding], dtype=np.float32)
+        elif query_embedding.dtype != np.float32:
+            query_embedding = query_embedding.astype(np.float32)
 
-        # Generate normalized query embedding
-        query_embedding = self.model.encode(
-            [query],
-            normalize_embeddings=True
-        )
-
-        query_embedding = np.asarray(
-            query_embedding,
-            dtype=np.float32
-        )
-
-        # Search FAISS index
-        scores, indices = self.index.search(
-            query_embedding,
-            top_k
-        )
-
+        scores, indices = self.index.search(query_embedding, top_k)
         results = []
 
         for score, idx in zip(scores[0], indices[0]):
-            # Ignore invalid FAISS indexes (-1)
             if idx < 0:
                 continue
 
@@ -175,7 +154,6 @@ class CisaRetriever:
                 "text": chunk.get("text"),
             }
 
-            # If page info is present, include it
             if "page_start" in metadata:
                 result_item["page_start"] = metadata["page_start"]
             if "page_end" in metadata:
@@ -184,6 +162,16 @@ class CisaRetriever:
             results.append(result_item)
 
         return results
+
+    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Retrieve top_k most relevant CISA knowledge chunks for a given query.
+        """
+        if not query or not query.strip():
+            raise ValueError("Query cannot be empty.")
+
+        query_embedding = self.embedding_provider.embed_text(query)
+        return self.search_by_vector(query_embedding, top_k=top_k)
 
 
 # ---------------------------------------------------------

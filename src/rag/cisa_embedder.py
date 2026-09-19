@@ -2,12 +2,13 @@ import json
 import os
 import sys
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
+from src.rag.embedding_provider import get_embedding_provider
 
 
 # ---------------------------------------------------------
@@ -44,9 +45,8 @@ METADATA_FILE = os.path.join(
 # Embedding Model
 # ---------------------------------------------------------
 
-MODEL_NAME = "all-MiniLM-L6-v2"
-EXPECTED_DIMENSION = 384
-BATCH_SIZE = 32
+EXPECTED_DIMENSION = 768
+BATCH_SIZE = 25
 
 
 def resolve_path(path: str) -> str:
@@ -69,11 +69,10 @@ def resolve_path(path: str) -> str:
 def generate_cisa_embeddings(
     input_file: str = INPUT_FILE,
     output_dir: str = OUTPUT_DIR,
-    model_name: str = MODEL_NAME,
     batch_size: int = BATCH_SIZE,
 ):
     """
-    Load CISA chunks, generate normalized float32 embeddings using SentenceTransformer,
+    Load CISA chunks, generate normalized float32 embeddings using GeminiEmbeddingProvider,
     validate, and save embeddings (.npy) and metadata (.json).
     """
     # -----------------------------------------------------
@@ -105,21 +104,20 @@ def generate_cisa_embeddings(
     texts = [chunk["text"] for chunk in chunks]
 
     # -----------------------------------------------------
-    # Load embedding model
+    # Load embedding provider
     # -----------------------------------------------------
-    print(f"\nLoading embedding model: {model_name}...")
-    model = SentenceTransformer(model_name)
-    print("Embedding model loaded successfully.")
+    print("\nLoading embedding provider...")
+    provider = get_embedding_provider()
+    print(f"Model: {provider.model_name}, Dimension: {provider.dimension}")
 
     # -----------------------------------------------------
     # Generate normalized embeddings
     # -----------------------------------------------------
     print(f"\nGenerating normalized embeddings (batch_size={batch_size})...")
-    embeddings = model.encode(
+    embeddings = provider.embed_documents(
         texts,
         batch_size=batch_size,
-        show_progress_bar=True,
-        normalize_embeddings=True,
+        show_progress=True,
     )
 
     # Convert embeddings to float32 NumPy array

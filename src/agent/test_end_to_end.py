@@ -195,7 +195,7 @@ TEST_SCENARIOS = [
         "id": 3,
         "name": "Malware Infection",
         "raw_alert": SCENARIO_3_MALWARE,
-        "expected_mitre": ["T1204", "T1059", "T1547", "T1071"],
+        "expected_mitre": ["T1204", "T1059", "T1547", "T1071", "T1055", "T1027"],
         "expected_playbook_keyword": "Malware",
         "primary_ioc": "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
         "private_ioc": "192.168.1.88",

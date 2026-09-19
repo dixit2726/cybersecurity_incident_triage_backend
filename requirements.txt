@@ -6,10 +6,8 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 httpx>=0.27.0
 
-# Vector Search & Semantic Embeddings (Multi-Source RAG)
+# Vector Search & Semantic Embeddings (Multi-Source RAG with Gemini Embeddings)
 faiss-cpu>=1.9.0
-sentence-transformers>=3.0.0
-torch>=2.2.0
 numpy>=1.26.0
 
 # Data Pipeline & Document Processing
@@ -17,6 +15,7 @@ pandas>=2.2.0
 pypdf>=4.2.0
 
 # LLM Reasoning & Retrieval Chains (Google Gemini)
+google-genai>=0.1.0
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-google-genai>=1.0.0

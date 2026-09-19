@@ -2,12 +2,13 @@ import json
 import os
 import sys
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
+from src.rag.embedding_provider import get_embedding_provider
 
 
 # ---------------------------------------------------------
@@ -101,23 +102,20 @@ def main():
     texts = [chunk["text"] for chunk in chunks]
 
     # -----------------------------------------------------
-    # Load embedding model
+    # Load embedding provider
     # -----------------------------------------------------
-    print("\nLoading embedding model...")
-    print(f"Model name: {MODEL_NAME}")
-
-    model = SentenceTransformer(MODEL_NAME)
-    print("Embedding model loaded successfully.")
+    print("\nLoading embedding provider...")
+    provider = get_embedding_provider()
+    print(f"Model: {provider.model_name}, Dimension: {provider.dimension}")
 
     # -----------------------------------------------------
     # Generate normalized embeddings
     # -----------------------------------------------------
     print("\nGenerating normalized embeddings...")
-    embeddings = model.encode(
+    embeddings = provider.embed_documents(
         texts,
-        batch_size=32,
-        show_progress_bar=True,
-        normalize_embeddings=True
+        batch_size=25,
+        show_progress=True,
     )
 
     embeddings = np.asarray(
