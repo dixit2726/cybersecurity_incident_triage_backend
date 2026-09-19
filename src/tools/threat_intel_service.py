@@ -1,8 +1,11 @@
+import logging
 import os
 import re
 import sqlite3
 import sys
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger("tools.threat_intel_service")
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -83,6 +86,16 @@ class ThreatIntelService:
                 alt_path = os.path.join(PROJECT_ROOT, db_path)
                 if os.path.exists(alt_path):
                     resolved_path = alt_path
+                else:
+                    # Auto-initialization fallback: build from repository MISP datasets if missing
+                    try:
+                        from src.tools.build_misp_index import build_threat_intelligence_db
+                        logger.info("Threat intelligence database not found at %s. Auto-generating...", alt_path)
+                        build_threat_intelligence_db(output_path=alt_path)
+                        if os.path.exists(alt_path):
+                            resolved_path = alt_path
+                    except Exception as exc:
+                        logger.warning("Auto-generation of threat intelligence database failed: %s", exc)
 
         if not os.path.exists(resolved_path):
             raise FileNotFoundError(f"Threat intelligence database not found at: {db_path}")
