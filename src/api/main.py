@@ -21,6 +21,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from src.agent.triage_agent import TriageAgent
 from src.api.dependencies import get_triage_agent
@@ -201,11 +202,13 @@ async def triage_alert(
 ) -> TriageResponse:
     start_time = time.perf_counter()
 
-    # Execute triage through the singleton TriageAgent
-    triage_report = agent.triage(
+    # Execute triage through the singleton TriageAgent asynchronously in threadpool
+    triage_report = await run_in_threadpool(
+        agent.triage,
         alert_text=request.alert_text,
         enable_live=request.enable_live,
     )
+
 
     # Extract alert_id if available
     alert_id: Optional[str] = None
@@ -249,12 +252,14 @@ async def ask_incident_question(
     agent: TriageAgent = Depends(get_triage_agent),
 ) -> IncidentAskResponse:
     try:
-        # Delegate to the evidence-grounded incident assistant
-        result = agent.gemini_engine.ask_question_over_incident(
+        # Delegate to the evidence-grounded incident assistant asynchronously in threadpool
+        result = await run_in_threadpool(
+            agent.gemini_engine.ask_question_over_incident,
             triage_report=request.triage_report,
             question=request.question,
             alert_text=request.alert_text,
         )
+
         return IncidentAskResponse(
             success=True,
             question=result.get("question", request.question),
