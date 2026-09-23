@@ -87,14 +87,141 @@ class TriageAgent:
         :param cisa_top_k: Number of CISA guidance candidates to retrieve (default 5).
         :return: Final structured Incident Triage Report synthesized by Gemini from the Evidence Package.
         """
-        evidence_pkg = self.process_alert(
-            alert_text=alert_text,
-            enable_live=enable_live,
+        import time
+        from datetime import datetime
+
+        timings: Dict[str, Any] = {}
+
+        # 2. Alert parsing
+        t_parse_start = time.perf_counter()
+        t_parse_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        parsed_alert = self.rag_pipeline.parser.parse(alert_text)
+        rag_query = self.rag_pipeline.build_rag_query(parsed_alert)
+        t_parse_end = time.perf_counter()
+        t_parse_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_parse_ms = (t_parse_end - t_parse_start) * 1000.0
+        timings["parsing"] = {
+            "start": t_parse_start_str, "end": t_parse_end_str, "ms": dur_parse_ms
+        }
+        print(f"[Stage 2] Alert parsing: start={t_parse_start_str}, end={t_parse_end_str}, duration={dur_parse_ms:.2f} ms")
+
+        # Sub-stage: Gemini Embedding API
+        t_emb_start = time.perf_counter()
+        t_emb_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        query_vector = self.rag_pipeline.retriever.embedding_provider.embed_text(rag_query)
+        t_emb_end = time.perf_counter()
+        t_emb_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_emb_ms = (t_emb_end - t_emb_start) * 1000.0
+        timings["embedding"] = {
+            "start": t_emb_start_str, "end": t_emb_end_str, "ms": dur_emb_ms
+        }
+        print(f"[Sub-stage] Gemini Embedding API: start={t_emb_start_str}, end={t_emb_end_str}, duration={dur_emb_ms:.2f} ms")
+
+        # 4. MITRE RAG retrieval (FAISS search)
+        t_mitre_start = time.perf_counter()
+        t_mitre_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        mitre_results = self.rag_pipeline.retriever.mitre_retriever.search_by_vector(query_vector, top_k=mitre_top_k)
+        t_mitre_end = time.perf_counter()
+        t_mitre_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_mitre_ms = (t_mitre_end - t_mitre_start) * 1000.0
+        timings["mitre_rag"] = {
+            "start": t_mitre_start_str, "end": t_mitre_end_str, "ms": dur_mitre_ms
+        }
+        print(f"[Stage 4] MITRE RAG retrieval: start={t_mitre_start_str}, end={t_mitre_end_str}, duration={dur_mitre_ms:.2f} ms")
+
+        # 5. Playbook RAG retrieval (FAISS search)
+        t_pb_start = time.perf_counter()
+        t_pb_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        playbook_results = self.rag_pipeline.retriever.playbook_retriever.search_by_vector(query_vector, top_k=playbook_top_k)
+        t_pb_end = time.perf_counter()
+        t_pb_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_pb_ms = (t_pb_end - t_pb_start) * 1000.0
+        timings["playbook_rag"] = {
+            "start": t_pb_start_str, "end": t_pb_end_str, "ms": dur_pb_ms
+        }
+        print(f"[Stage 5] Playbook RAG retrieval: start={t_pb_start_str}, end={t_pb_end_str}, duration={dur_pb_ms:.2f} ms")
+
+        # 6. CISA RAG retrieval (FAISS search)
+        t_cisa_start = time.perf_counter()
+        t_cisa_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        cisa_results = self.rag_pipeline.retriever.cisa_retriever.search_by_vector(query_vector, top_k=cisa_top_k)
+        t_cisa_end = time.perf_counter()
+        t_cisa_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_cisa_ms = (t_cisa_end - t_cisa_start) * 1000.0
+        timings["cisa_rag"] = {
+            "start": t_cisa_start_str, "end": t_cisa_end_str, "ms": dur_cisa_ms
+        }
+        print(f"[Stage 6] CISA RAG retrieval: start={t_cisa_start_str}, end={t_cisa_end_str}, duration={dur_cisa_ms:.2f} ms")
+
+        # Normalize retrieval results
+        retrieval = self.rag_pipeline.retriever.retrieve_by_vector(
+            query_vector,
+            query=rag_query,
             mitre_top_k=mitre_top_k,
             playbook_top_k=playbook_top_k,
             cisa_top_k=cisa_top_k,
         )
-        return self.gemini_engine.reason_over_evidence(evidence_pkg)
+        pipeline_result = {
+            "parsed_alert": parsed_alert,
+            "rag_query": rag_query,
+            "rag_results": {
+                "mitre": retrieval["mitre"],
+                "playbooks": retrieval["playbooks"],
+                "cisa": retrieval["cisa"],
+                "summary": retrieval["summary"],
+            },
+        }
+
+        # 3. Threat Intelligence lookup & 7. Evidence package construction
+        live_enabled = self.enable_live if enable_live is None else enable_live
+        t_build_start = time.perf_counter()
+        t_build_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        evidence_pkg = self.evidence_builder.build(
+            pipeline_result=pipeline_result,
+            enable_live=live_enabled,
+        )
+        t_build_end = time.perf_counter()
+        t_build_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_build_ms = (t_build_end - t_build_start) * 1000.0
+
+        # Measure isolated TI lookup time
+        t_ti_only_start = time.perf_counter()
+        for ioc in parsed_alert.get("ioc_evidence", []):
+            val = ioc.get("value")
+            if val:
+                try:
+                    self.evidence_builder.ti_service.lookup(val, ioc_type=ioc.get("type"), enable_live=live_enabled)
+                except Exception:
+                    pass
+        t_ti_only_end = time.perf_counter()
+        dur_ti_ms = (t_ti_only_end - t_ti_only_start) * 1000.0
+        dur_ep_ms = max(0.01, dur_build_ms - dur_ti_ms)
+
+        timings["threat_intel"] = {
+            "start": t_build_start_str, "end": t_build_end_str, "ms": dur_ti_ms
+        }
+        print(f"[Stage 3] Threat Intelligence lookup: start={t_build_start_str}, end={t_build_end_str}, duration={dur_ti_ms:.2f} ms")
+
+        timings["evidence_package"] = {
+            "start": t_build_start_str, "end": t_build_end_str, "ms": dur_ep_ms
+        }
+        print(f"[Stage 7] Evidence package construction: start={t_build_start_str}, end={t_build_end_str}, duration={dur_ep_ms:.2f} ms")
+
+        # 8. Gemini triage analysis
+        t_gem_start = time.perf_counter()
+        t_gem_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        report = self.gemini_engine.reason_over_evidence(evidence_pkg)
+        t_gem_end = time.perf_counter()
+        t_gem_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        dur_gem_ms = (t_gem_end - t_gem_start) * 1000.0
+        timings["gemini"] = {
+            "start": t_gem_start_str, "end": t_gem_end_str, "ms": dur_gem_ms
+        }
+        print(f"[Stage 8] Gemini triage analysis: start={t_gem_start_str}, end={t_gem_end_str}, duration={dur_gem_ms:.2f} ms")
+
+        if isinstance(report, dict):
+            report["_stage_timings"] = timings
+        return report
 
     def process_alert(
         self,

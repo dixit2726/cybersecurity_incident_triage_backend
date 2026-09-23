@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 
@@ -201,6 +202,9 @@ async def triage_alert(
     agent: TriageAgent = Depends(get_triage_agent),
 ) -> TriageResponse:
     start_time = time.perf_counter()
+    req_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    print(f"\n{'='*60}\n[Stage 1] Request received: start={req_start_str}\n{'='*60}")
+    logger.info("[Stage 1] Request received: start=%s", req_start_str)
 
     # Execute triage through the singleton TriageAgent asynchronously in threadpool
     triage_report = await run_in_threadpool(
@@ -209,6 +213,9 @@ async def triage_alert(
         enable_live=request.enable_live,
     )
 
+    stage_timings: Dict[str, Any] = {}
+    if isinstance(triage_report, dict) and "_stage_timings" in triage_report:
+        stage_timings = triage_report.pop("_stage_timings")
 
     # Extract alert_id if available
     alert_id: Optional[str] = None
@@ -223,9 +230,12 @@ async def triage_alert(
         except Exception:
             alert_id = None
 
+    # 9. Final response serialization
+    t_ser_start = time.perf_counter()
+    ser_start_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
-    return TriageResponse(
+    response = TriageResponse(
         success=True,
         alert_id=alert_id,
         triage_report=triage_report,
@@ -233,6 +243,45 @@ async def triage_alert(
             processing_time_ms=round(elapsed_ms, 2)
         ),
     )
+    t_ser_end = time.perf_counter()
+    ser_end_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    dur_ser_ms = (t_ser_end - t_ser_start) * 1000.0
+    print(f"[Stage 9] Final response serialization: start={ser_start_str}, end={ser_end_str}, duration={dur_ser_ms:.2f} ms")
+
+    # 10. Total request time
+    total_end = time.perf_counter()
+    total_req_ms = (total_end - start_time) * 1000.0
+    print(f"[Stage 10] Total request time: duration={total_req_ms:.2f} ms")
+
+    parse_ms = stage_timings.get("parsing", {}).get("ms", 0.0)
+    ti_ms = stage_timings.get("threat_intel", {}).get("ms", 0.0)
+    emb_ms = stage_timings.get("embedding", {}).get("ms", 0.0)
+    mitre_ms = stage_timings.get("mitre_rag", {}).get("ms", 0.0)
+    pb_ms = stage_timings.get("playbook_rag", {}).get("ms", 0.0)
+    cisa_ms = stage_timings.get("cisa_rag", {}).get("ms", 0.0)
+    ep_ms = stage_timings.get("evidence_package", {}).get("ms", 0.0)
+    gem_ms = stage_timings.get("gemini", {}).get("ms", 0.0)
+
+    summary_banner = f"""
+==================================================
+BACKEND REQUEST LATENCY BREAKDOWN (POST /api/v1/triage)
+==================================================
+Parsing:          {parse_ms:8.2f} ms
+Threat Intel:     {ti_ms:8.2f} ms
+MITRE RAG:        {mitre_ms + emb_ms:8.2f} ms  (Gemini Embedding: {emb_ms:.2f} ms, FAISS search: {mitre_ms:.2f} ms)
+Playbook RAG:     {pb_ms:8.2f} ms
+CISA RAG:         {cisa_ms:8.2f} ms
+Evidence Package: {ep_ms:8.2f} ms
+Gemini:           {gem_ms:8.2f} ms
+Final Serializ.:  {dur_ser_ms:8.2f} ms
+--------------------------------------------------
+Total:            {total_req_ms:8.2f} ms
+==================================================
+"""
+    print(summary_banner)
+    logger.info(summary_banner)
+
+    return response
 
 
 @app.post(

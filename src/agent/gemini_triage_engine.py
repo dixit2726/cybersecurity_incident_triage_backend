@@ -33,6 +33,8 @@ def sanitize_secret(text: Any, secret_key: Optional[str] = None) -> str:
     # Redact Google API key patterns: AIzaSy..., AQ....
     s = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", s)
     s = re.sub(r"AQ\.[0-9A-Za-z-_]{40,}", "[REDACTED_API_KEY]", s)
+    # Redact xKiro / OpenAI key patterns: sk-...
+    s = re.sub(r"sk-[0-9A-Za-z-_]{20,}", "[REDACTED_API_KEY]", s)
     # Redact key=... parameters in URLs or JSON
     s = re.sub(r"(key[=:][\s\"']*)[A-Za-z0-9_\-\.]{20,}", r"\1[REDACTED_API_KEY]", s, flags=re.IGNORECASE)
     return s
@@ -175,9 +177,77 @@ def clean_json_response(raw_text: str) -> str:
     return text
 
 
+class OpenAIResponse:
+    """Lightweight response wrapper mimicking LangChain's AIMessage."""
+
+    def __init__(self, content: str):
+        self.content = content
+
+
+class OpenAICompatibleClient:
+    """
+    Lightweight client for OpenAI-compatible chat completion APIs (e.g., xKiro, OpenRouter).
+    Exposes an `.invoke(prompt)` method returning an object with a `.content` attribute.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = "https://api.xkiro.com/v1",
+        model: str = "qwen/qwen3.5-flash:free",
+        temperature: float = 0.1,
+        timeout: float = 45.0,
+        max_retries: int = 0,
+        max_tokens: int = 2048,
+    ):
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.temperature = temperature
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.max_tokens = max_tokens
+
+    def invoke(self, prompt: str) -> OpenAIResponse:
+        import requests
+
+        url = f"{self.base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+
+        last_error = None
+        for attempt in range(max(1, self.max_retries + 1)):
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    choices = data.get("choices", [])
+                    if choices and "message" in choices[0]:
+                        content = choices[0]["message"].get("content", "")
+                        return OpenAIResponse(content=content)
+                    raise ValueError(f"Invalid completion format from API: {data}")
+                else:
+                    error_msg = f"HTTP {resp.status_code}: {resp.text}"
+                    last_error = RuntimeError(error_msg)
+            except Exception as e:
+                last_error = e
+
+        raise last_error or RuntimeError("OpenAI-compatible chat completion failed")
+
+
 class GeminiTriageEngine:
     """
-    Evidence-based AI reasoning engine powered by Google Gemini.
+    Evidence-based AI reasoning engine powered by Google Gemini or OpenAI-compatible providers (e.g. xKiro).
     Ingests an immutable Evidence Package and performs structured, grounded triage.
 
     CRITICAL BOUNDARIES:
@@ -278,21 +348,58 @@ You MUST respond with valid JSON matching this exact structure:
         model_name: Optional[str] = None,
         api_key: Optional[str] = None,
         llm_client: Optional[Any] = None,
+        max_retries: int = 0,
+        timeout: float = 45.0,
+        provider: Optional[str] = None,
+        base_url: Optional[str] = None,
     ):
-        # Read API key strictly from environment if not passed explicitly
+        # Determine provider: 'xkiro' or 'gemini'
+        self.provider = (provider or os.getenv("LLM_PROVIDER", "gemini")).strip().lower()
         self._api_key = api_key or os.getenv("GOOGLE_API_KEY", "").strip() or os.getenv("GEMINI_API_KEY", "").strip() or None
-        self.model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
+        self._xkiro_key = os.getenv("XKIRO_API_KEY", "").strip() or None
+        self._xkiro_base_url = (base_url or os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1")).strip()
+        self._xkiro_model = (model_name if self.provider == "xkiro" else None) or os.getenv("XKIRO_MODEL", "qwen/qwen3.5-flash:free").strip()
+        self.model_name = model_name or (self._xkiro_model if self.provider == "xkiro" else os.getenv("GEMINI_MODEL", "gemini-3.6-flash")).strip()
+        self.max_retries = max_retries
+        self.timeout = timeout
         self.llm_client = llm_client
 
     @property
     def has_api_key(self) -> bool:
+        if self.provider == "xkiro":
+            return bool(self._xkiro_key)
         return bool(self._api_key)
 
+    @property
+    def active_secret_key(self) -> Optional[str]:
+        if self.provider == "xkiro":
+            return self._xkiro_key
+        return self._api_key
+
     def _initialize_client(self):
-        """Lazy-initialize Gemini chat model client."""
+        """Lazy-initialize chat model client based on configured provider."""
         if self.llm_client is not None:
             return self.llm_client
 
+        if self.provider == "xkiro":
+            if not self._xkiro_key:
+                logger.warning("xKiro provider requested but XKIRO_API_KEY is not set.")
+                return None
+            try:
+                self.llm_client = OpenAICompatibleClient(
+                    api_key=self._xkiro_key,
+                    base_url=self._xkiro_base_url,
+                    model=self._xkiro_model,
+                    temperature=0.1,
+                    timeout=self.timeout,
+                    max_retries=self.max_retries,
+                )
+                return self.llm_client
+            except Exception as e:
+                logger.error("Failed to initialize xKiro client: %s", e)
+                return None
+
+        # Default Gemini client
         if not self._api_key:
             return None
 
@@ -302,6 +409,8 @@ You MUST respond with valid JSON matching this exact structure:
                 model=self.model_name,
                 google_api_key=self._api_key,
                 temperature=0.1,
+                max_retries=self.max_retries,
+                timeout=self.timeout,
             )
             return self.llm_client
         except Exception:
@@ -344,7 +453,7 @@ Respond ONLY with the JSON object, no Markdown backticks or commentary."""
         and avoids exposing raw exception dumps to the user.
         """
         if classified_error is None:
-            classified_error = classify_gemini_error(error_message or "Unknown error", secret_key=self._api_key)
+            classified_error = classify_gemini_error(error_message or "Unknown error", secret_key=self.active_secret_key)
 
         alert_meta = evidence_package.get("alert", {}).get("alert_metadata", {})
         net_ctx = evidence_package.get("alert", {}).get("network_context", {})
@@ -480,7 +589,7 @@ Respond ONLY with the JSON object, no Markdown backticks or commentary."""
 
         except Exception as e:
             # Safely classify error without leaking raw stack trace or secrets
-            classified = classify_gemini_error(e, secret_key=self._api_key)
+            classified = classify_gemini_error(e, secret_key=self.active_secret_key)
             logger.warning(
                 "Gemini API invocation failed [%s - %s]: %s",
                 classified["code"],
@@ -628,7 +737,7 @@ ANALYST QUESTION:
                         },
                     }
             except Exception as e:
-                classified = classify_gemini_error(e, secret_key=self._api_key)
+                classified = classify_gemini_error(e, secret_key=self.active_secret_key)
                 logger.warning(
                     "Gemini Q&A invocation failed [%s]: %s",
                     classified["code"],
