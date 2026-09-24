@@ -30,11 +30,15 @@ from src.api.schemas import (
     HealthResponse,
     IncidentAskRequest,
     IncidentAskResponse,
+    IncidentDetailResponse,
+    IncidentListResponse,
+    IncidentSummary,
     ProcessingMetadata,
     RootResponse,
     TriageRequest,
     TriageResponse,
 )
+from src.db.incident_repository import incident_repo
 from src.nlp.alert_parser import AlertParser
 
 # Configure server logger
@@ -281,6 +285,26 @@ Total:            {total_req_ms:8.2f} ms
     print(summary_banner)
     logger.info(summary_banner)
 
+    # Fail-safe asynchronous Supabase persistence (database error never breaks triage)
+    try:
+        network_ctx = None
+        if hasattr(agent, "rag_pipeline") and hasattr(agent.rag_pipeline, "parser"):
+            try:
+                parsed_alert_for_ctx = agent.rag_pipeline.parser.parse(request.alert_text)
+                network_ctx = parsed_alert_for_ctx.get("network_context")
+            except Exception:
+                pass
+
+        await run_in_threadpool(
+            incident_repo.create_incident,
+            alert_text=request.alert_text,
+            triage_report=triage_report,
+            alert_id=alert_id,
+            network_context=network_ctx,
+        )
+    except Exception as db_err:
+        logger.warning("Failed to persist incident to Supabase (triage unaffected): %s", str(db_err))
+
     return response
 
 
@@ -325,6 +349,78 @@ async def ask_incident_question(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing the incident question.",
+        )
+
+
+@app.get(
+    "/api/v1/incidents",
+    response_model=IncidentListResponse,
+    tags=["Incident History"],
+    summary="List Triaged Incidents",
+    description="Retrieve a paginated list of historically triaged incidents from Supabase.",
+)
+async def list_incidents(
+    limit: int = 20,
+    offset: int = 0,
+) -> IncidentListResponse:
+    try:
+        limit_clamped = max(1, min(limit, 100))
+        offset_clamped = max(0, offset)
+        items = await run_in_threadpool(
+            incident_repo.list_incidents,
+            limit=limit_clamped,
+            offset=offset_clamped,
+        )
+        total = await run_in_threadpool(incident_repo.count_incidents)
+        return IncidentListResponse(
+            success=True,
+            total=total,
+            limit=limit_clamped,
+            offset=offset_clamped,
+            incidents=items,
+        )
+    except Exception as e:
+        logger.warning("Error fetching incident history: %s", str(e))
+        return IncidentListResponse(
+            success=False,
+            total=0,
+            limit=limit,
+            offset=offset,
+            incidents=[],
+        )
+
+
+@app.get(
+    "/api/v1/incidents/{incident_id}",
+    response_model=IncidentDetailResponse,
+    tags=["Incident History"],
+    summary="Get Triaged Incident Details",
+    description="Retrieve the complete stored incident record and triage report by ID or UUID.",
+)
+async def get_incident(
+    incident_id: str,
+) -> IncidentDetailResponse:
+    try:
+        record = await run_in_threadpool(
+            incident_repo.get_incident,
+            identifier=incident_id,
+        )
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Incident '{incident_id}' not found.",
+            )
+        return IncidentDetailResponse(
+            success=True,
+            incident=record,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("Error retrieving incident '%s': %s", incident_id, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve incident details from database.",
         )
 
 

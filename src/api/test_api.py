@@ -354,6 +354,38 @@ class TestFastAPIBackend(unittest.TestCase):
         self.assertEqual(bad_resp.status_code, 422)
         print("[PASS] TEST 17 — Verified scoped incident assistant endpoint POST /api/v1/incident/ask")
 
+    def test_18_list_incidents_endpoint(self):
+        """Test GET /api/v1/incidents returns valid list response structure."""
+        resp = self.client.get("/api/v1/incidents?limit=10&offset=0")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get("success"))
+        self.assertIn("total", data)
+        self.assertIn("incidents", data)
+        self.assertEqual(data.get("limit"), 10)
+        self.assertEqual(data.get("offset"), 0)
+        self.assertIsInstance(data.get("incidents"), list)
+        print("[PASS] TEST 18 — Verified GET /api/v1/incidents paginated response structure")
+
+    def test_19_get_incident_detail_endpoint(self):
+        """Test GET /api/v1/incidents/{incident_id} returns 404 for nonexistent incident."""
+        resp = self.client.get("/api/v1/incidents/NONEXISTENT-INCIDENT-ID-12345")
+        self.assertEqual(resp.status_code, 404)
+        print("[PASS] TEST 19 — Verified GET /api/v1/incidents/{incident_id} 404 behavior")
+
+    def test_20_triage_db_error_resilience(self):
+        """Verify that triage returns HTTP 200 even if database persistence fails."""
+        from unittest.mock import patch
+        from src.db.incident_repository import incident_repo
+
+        with patch.object(incident_repo, "create_incident", side_effect=RuntimeError("Simulated DB connection failure")):
+            resp = self.client.post("/api/v1/triage", json={"alert_text": SAMPLE_SSH_ALERT})
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json()
+            self.assertTrue(data.get("success"))
+            self.assertIn("triage_report", data)
+        print("[PASS] TEST 20 — Verified database failure does not disrupt triage response")
+
 
 def run_api_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestFastAPIBackend)

@@ -150,3 +150,39 @@ class IncidentAskResponse(BaseModel):
         default_factory=dict,
         description="Grounded evidence references derived strictly from the incident data."
     )
+
+
+class IncidentSummary(BaseModel):
+    """
+    Lightweight summary representation of a stored incident for history listings.
+    """
+    id: str = Field(..., description="Unique database UUID identifier.")
+    incident_id: Optional[str] = Field(default=None, description="Extracted alert/incident identifier.")
+    created_at: Optional[str] = Field(default=None, description="Timestamp of when the incident was triaged.")
+    severity: Optional[str] = Field(default=None, description="Assessed severity level.")
+    event_type: Optional[str] = Field(default=None, description="Detected attack or event category.")
+    source_ip: Optional[str] = Field(default=None, description="Identified source IP address.")
+    destination_ip: Optional[str] = Field(default=None, description="Identified destination/target IP address.")
+    protocol: Optional[str] = Field(default=None, description="Observed network protocol.")
+    destination_port: Optional[str] = Field(default=None, description="Target port/service.")
+    analyst_review_required: bool = Field(default=True, description="Human analyst verification flag.")
+
+
+class IncidentListResponse(BaseModel):
+    """
+    Paginated incident list response envelope.
+    """
+    success: bool = Field(default=True, description="Query execution status.")
+    total: int = Field(default=0, description="Total number of stored incidents.")
+    limit: int = Field(default=20, description="Page limit requested.")
+    offset: int = Field(default=0, description="Page offset requested.")
+    incidents: List[IncidentSummary] = Field(default_factory=list, description="List of stored incident summaries.")
+
+
+class IncidentDetailResponse(BaseModel):
+    """
+    Detailed incident record response envelope containing the full triage report.
+    """
+    success: bool = Field(default=True, description="Query execution status.")
+    incident: Dict[str, Any] = Field(..., description="Complete stored incident record including full triage_report.")
+
