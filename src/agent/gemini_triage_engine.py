@@ -605,6 +605,9 @@ Respond ONLY with the JSON object, no Markdown backticks or commentary."""
                         "proves the file is malicious",
                         "confirms compromise",
                         "proves malicious",
+                        "confirms the destination",
+                        "known threat actor resource",
+                        "confirms destination",
                     )
                 )
                 contradicts = (
@@ -621,6 +624,16 @@ Respond ONLY with the JSON object, no Markdown backticks or commentary."""
                             "The hash matches a malware sample listed in MalwareBazaar. "
                             "This provides threat-intelligence evidence associated with the file hash; "
                             "analyst review is required to correlate it with the observed execution."
+                        )
+                    else:
+                        interpretation = llm_interp
+                elif det_source == "URLhaus":
+                    if has_overly_strong_claim or contradicts or not llm_interp:
+                        threat_desc = f" as a {det_threat_type} indicator" if det_threat_type else " indicator"
+                        interpretation = (
+                            f"The URL is listed in URLhaus{threat_desc}. "
+                            "This provides threat-intelligence evidence associated with the destination; "
+                            "analyst review is required to correlate it with the observed activity."
                         )
                     else:
                         interpretation = llm_interp

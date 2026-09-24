@@ -3,6 +3,7 @@ import os
 import re
 import sqlite3
 import sys
+import threading
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("tools.threat_intel_service")
@@ -101,9 +102,26 @@ class ThreatIntelService:
             raise FileNotFoundError(f"Threat intelligence database not found at: {db_path}")
 
         self.db_path = os.path.abspath(resolved_path)
-        self.conn = sqlite3.connect(self.db_path)
+        self._local = threading.local()
         self.enable_live = enable_live
         self.live_client = live_client or AbuseCHClient()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        """
+        Thread-safe SQLite connection manager.
+        Allocates and caches a connection per calling thread so that background
+        worker threads (such as FastAPI run_in_threadpool) never share connections.
+        """
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self.db_path)
+            self._local.conn = conn
+        return conn
+
+    @property
+    def conn(self) -> sqlite3.Connection:
+        """Backward-compatible property accessor returning thread-local connection."""
+        return self._get_connection()
 
     def lookup(
         self,
@@ -135,7 +153,7 @@ class ThreatIntelService:
             if norm_type not in self.SUPPORTED_IOC_TYPES:
                 raise ValueError(f"Unsupported IOC type: '{ioc_type}'")
 
-        cursor = self.conn.cursor()
+        cursor = self._get_connection().cursor()
 
         # Check if the IOC is an IPv4 address (without port)
         is_ipv4 = bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", clean_ioc))
@@ -214,10 +232,14 @@ class ThreatIntelService:
         return results
 
     def close(self):
-        """Close the SQLite database connection."""
-        if self.conn:
-            self.conn.close()
-            self.conn = None
+        """Close the SQLite database connection for the calling thread."""
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
 
     def __enter__(self):
         return self

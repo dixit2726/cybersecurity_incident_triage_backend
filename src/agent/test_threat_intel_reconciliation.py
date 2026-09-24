@@ -299,6 +299,110 @@ class TestThreatIntelReconciliation(unittest.TestCase):
 
         self.assertEqual(len(reconciled["threat_intelligence_findings"]), 1)
 
+    def test_07_thread_safe_lookup_worker_thread(self):
+        """
+        Test 7:
+        ThreatIntelService initialized on main thread works correctly and thread-safely
+        when queried from a background worker thread (simulating FastAPI run_in_threadpool).
+        """
+        import threading
+        from src.tools.threat_intel_service import ThreatIntelService
+
+        # Initialize on current (main) thread
+        service = ThreatIntelService()
+
+        target_url = "http://219.155.83.56:57148/i"
+        target_hash = "3da81722c72b21f29acaa873341da517"
+
+        worker_results = {}
+        worker_errors = []
+
+        def worker():
+            try:
+                url_res = service.lookup(target_url, ioc_type="url")
+                hash_res = service.lookup(target_hash, ioc_type="md5_hash")
+                worker_results["url"] = url_res
+                worker_results["hash"] = hash_res
+            except Exception as e:
+                worker_errors.append(e)
+
+        thread = threading.Thread(target=worker)
+        thread.start()
+        thread.join()
+
+        self.assertEqual(worker_errors, [], f"Worker thread raised exception: {worker_errors}")
+
+        # URL verification
+        url_matches = worker_results.get("url", [])
+        self.assertGreater(len(url_matches), 0, "Expected at least 1 match for target URL")
+        self.assertEqual(url_matches[0]["source"], "URLhaus")
+        self.assertEqual(url_matches[0]["ioc_type"], "url")
+        self.assertEqual(url_matches[0]["threat_type"], "malware_download")
+
+        # Hash verification
+        hash_matches = worker_results.get("hash", [])
+        self.assertGreater(len(hash_matches), 0, "Expected at least 1 match for target hash")
+        self.assertEqual(hash_matches[0]["source"], "MalwareBazaar")
+        self.assertEqual(hash_matches[0]["ioc_type"], "md5_hash")
+        self.assertEqual(hash_matches[0]["threat_type"], "malware_sample")
+
+    def test_08_urlhaus_positive_match_interpretation_evidence_grounded(self):
+        """
+        Test 8:
+        URLhaus positive match interpretation uses evidence-grounded language and avoids
+        overly strong claims such as 'confirms the destination is a known threat actor resource'.
+        """
+        evidence_package = {
+            "threat_intelligence": [
+                {
+                    "queried_ioc": "http://219.155.83.56:57148/i",
+                    "ioc_type": "url",
+                    "match_found": True,
+                    "matches": [
+                        {
+                            "ioc": "http://219.155.83.56:57148/i",
+                            "ioc_type": "url",
+                            "source": "URLhaus",
+                            "threat_type": "malware_download",
+                        }
+                    ],
+                }
+            ]
+        }
+        llm_report = {
+            "threat_intelligence_findings": [
+                {
+                    "ioc": "http://219.155.83.56:57148/i",
+                    "source": "URLhaus",
+                    "match_found": True,
+                    "interpretation": (
+                        "The URL is explicitly listed in URLhaus as a malware_download source. "
+                        "Tags indicate relevance to 32-bit, elf, mips architectures and the Mozi botnet. "
+                        "This confirms the destination is a known threat actor resource."
+                    ),
+                }
+            ]
+        }
+
+        reconciled = self.engine.reconcile_threat_intelligence(llm_report, evidence_package)
+        f0 = reconciled["threat_intelligence_findings"][0]
+
+        self.assertTrue(f0["match_found"])
+        self.assertEqual(f0["source"], "URLhaus")
+        self.assertEqual(f0["ioc_type"], "url")
+        self.assertEqual(f0["threat_type"], "malware_download")
+
+        interp = f0["interpretation"]
+        self.assertNotIn("confirms the destination is a known threat actor resource", interp)
+        self.assertEqual(
+            interp,
+            "The URL is listed in URLhaus as a malware_download indicator. "
+            "This provides threat-intelligence evidence associated with the destination; "
+            "analyst review is required to correlate it with the observed activity.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
