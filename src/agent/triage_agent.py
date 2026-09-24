@@ -220,6 +220,7 @@ class TriageAgent:
         print(f"[Stage 8] Gemini triage analysis: start={t_gem_start_str}, end={t_gem_end_str}, duration={dur_gem_ms:.2f} ms")
 
         if isinstance(report, dict):
+            report = self.gemini_engine.reconcile_threat_intelligence(report, evidence_pkg)
             report["_stage_timings"] = timings
         return report
 
