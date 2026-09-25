@@ -5,6 +5,12 @@
 *.env.*
 !.env.example
 !*.env.example
+*.key
+serviceAccountKey.json
+credentials.json
+
+# Scratch & Temporary
+scratch/
 
 # Python
 __pycache__/
